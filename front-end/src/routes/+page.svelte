@@ -11,6 +11,7 @@
   import MobileSarah from "$lib/images/mobile_sarah.png";
   import SkepticalSam from "$lib/images/skeptical.gif";
   import AccessibilityAnna from "$lib/images/disabled.png";
+  import LandingCard from "$lib/components/LandingCard.svelte";
 
   const profiles = [
     {
@@ -65,7 +66,7 @@
         class="top-0 left-0 w-full h-full z-[-1] pointer-events-none opacity-75"/>
 
 <div class="min-h-screen z-50 absolute top-0 left-0 w-full">
-  <header class="flex items-center justify-between px-8 py-6 z-50">
+  <header class="flex items-center justify-between px-8 py-6 z-50]">
     <div class="flex items-center gap-2">
       <img
               src={Logo}
@@ -156,7 +157,7 @@
     <Card>
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
         {#each profiles as profile}
-          <CharacterCard
+          <LandingCard
                   icon={profile.icon}
                   name={profile.name}
                   description={profile.description}
