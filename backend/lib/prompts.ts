@@ -12,8 +12,8 @@ export function getAnalysisPrompt(
 
   const preambleExtras = [];
 
-  console.log(snapshot)
-  throw new Error("Snapshot is not supported yet");
+  // console.log(snapshot)
+  // throw new Error("Snapshot is not supported yet");
   if (includeSnapshot) {
     preambleExtras.push(
       `{ "action": "snapshot", "description": "Capture updated HTML snapshot before analysis" }`
@@ -48,6 +48,11 @@ IMPORTANT:
 - Avoid redundant clicks, presses, or assertions.
 - DO NOT check if elements merely exist without meaningful purpose.
 - Avoid vague or generic actions like snapshots without reason.
+- **When choosing selectors, prefer robust and broad selectors:**
+  - Use visible text (e.g., \`a:has-text("Raw")\`, \`button:has-text("Submit")\`) or role-based selectors when possible.
+  - Avoid overly strict selectors like \`[title='Raw']\` unless necessary.
+  - If the YAML or test description says \`link "Raw"\`, select the link by its visible text, not by attributes.
+  - Favor semantic and accessible selectors (e.g., roles, labels, aria attributes) for better reliability.
 
 ---
 
