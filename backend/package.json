@@ -1,0 +1,25 @@
+{
+  "name": "backend",
+  "version": "1.0.50",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "server": "bun run src/index.ts",
+    "client": "bun run src/client.ts",
+    "test": "bun run src/test-client.ts",
+    "test:connection": "bun run src/test-client.ts connection",
+    "test:all": "bun run src/test-client.ts all",
+    "test:single": "bun run src/test-client.ts single",
+    "test:dashboard": "bun run src/test-dashboard.ts"
+  },
+  "dependencies": {
+    "@elysiajs/websocket": "^0.2.8",
+    "@google/generative-ai": "^0.17.1",
+    "@modelcontextprotocol/sdk": "^1.13.0",
+    "@playwright/mcp": "^0.0.29",
+    "elysia": "latest"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "module": "src/index.js"
+}
