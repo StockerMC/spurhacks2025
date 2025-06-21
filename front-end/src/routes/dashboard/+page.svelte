@@ -2,6 +2,8 @@
     import { onMount } from 'svelte';
     import Button from '$lib/Components/Button.svelte';
     let mounted = $state(false);
+    // TODO: ADD RATING SYSTEM RATHER THAN PROGRESS BAR + COLORS`
+    // TODO: USE CARD COMPONENT INSTEAD LOLOL
 
     onMount(() => {
         mounted = true;
