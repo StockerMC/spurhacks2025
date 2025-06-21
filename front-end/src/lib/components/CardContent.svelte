@@ -1,3 +1,4 @@
+// aaron pls tell me what this does
 <script>
   let { children, class: className = "", ...props } = $props();
 </script>
