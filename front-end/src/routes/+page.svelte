@@ -163,11 +163,15 @@
                     </div>
                 </div>
 
-                <!-- Hero Visual - Stacked Cards -->
+                <!-- Hero Visual - Enhanced Cards -->
                 <div class="relative max-w-6xl mx-auto">
-                    <!-- Main question card with cool gradient -->
+                    <!-- Main question card with enhanced glow -->
                     <div class="relative mb-8">
-                        <div class="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-600 rounded-3xl p-8 md:p-12 shadow-2xl transform rotate-1 relative z-10">
+                        <div class="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-600 rounded-3xl p-8 md:p-12 shadow-2xl relative z-10 border border-slate-600/50">
+                            <!-- Enhanced glow effect -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-xl -z-10"></div>
+                            <div class="absolute inset-0 bg-gradient-to-br from-blue-400/10 via-purple-400/10 to-pink-400/10 rounded-3xl blur-2xl -z-20"></div>
+
                             <div class="text-left">
                                 <h3 class="text-2xl md:text-4xl font-light text-white mb-6 leading-relaxed">
                                     need someone to
@@ -180,10 +184,6 @@
                                 </p>
                             </div>
                         </div>
-
-                        <!-- Stacked shadow card -->
-                        <div class="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-500 rounded-3xl transform rotate-2 -z-10 opacity-60"></div>
-                        <div class="absolute inset-0 bg-gradient-to-br from-slate-600 via-slate-500 to-slate-400 rounded-3xl transform rotate-3 -z-20 opacity-40"></div>
                     </div>
 
                     <!-- Character Grid -->
