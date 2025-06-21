@@ -4,7 +4,7 @@ import { chromium, Browser, Page, BrowserContext } from 'playwright';
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+export const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
 // Interface for test actions
 interface TestAction {
@@ -20,6 +20,8 @@ interface TestAction {
     status: string;
     message?: string;
   };
+  width?: number;             // viewport size
+  height?: number;            // viewport size
 }
 
 // Interface for test iteration results
@@ -35,7 +37,7 @@ class Agent {
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
   private page: Page | null = null;
-  private testHistory: TestIterationResult[] = [];
+  public testHistory: TestIterationResult[] = [];
   private personality: Personality;
 
   constructor(personality: Personality) {
@@ -229,6 +231,13 @@ class Agent {
               result = { status: 'success', message: 'Scrolled to bottom of the page' };
             }
             break;
+          case 'set_viewport':
+            // how to avoid issues for this reason: page.setViewportSize(viewportSize) will resize the page. A lot of websites don't expect phones to change size, so you should set the viewport size before navigating to the page. page.setViewportSize(viewportSize) will also reset screen size, use browser.newContext([options]) with screen and viewport parameters if you need better control of these properties.
+            if (action.width && action.height) {
+              await this.page.setViewportSize({ width: action.width, height: action.height });
+              console.log(`📏 Viewport set to ${action.width}x${action.height}`);
+              result = { status: 'success', message: `Viewport set to ${action.width}x${action.height}` };
+            }
           default:
             // No-op for unknown actions
             result = { status: 'unknown_action', message: `Unknown action: ${actionType}` };
@@ -273,12 +282,14 @@ class Agent {
     }
     // Take final screenshot and get content for this iteration
     const finalScreenshot = await this.page.screenshot({ fullPage: true });
-    const finalPageSnap = await this.page.locator('body').ariaSnapshot();
+    const finalSnapshot = await this.page.locator('body').ariaSnapshot();
     const finaltextContent = await getVisibleText(this.page);
 
     this.testHistory.push({
       actions: actionResults,
       textContent: finaltextContent,
+      snapshot: JSON.stringify(finalSnapshot),
+      screenshot: finalScreenshot.toString('base64'),
       timestamp: Date.now()
     });
     console.log('📝 Test iteration completed and saved to history');
