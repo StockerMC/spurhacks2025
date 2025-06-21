@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@fontsource-variable/aleo": "^5.2.6",
+    "@fontsource-variable/figtree": "^5.2.8"
+  }
+}
