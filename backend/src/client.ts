@@ -1,10 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { getAnalysisPrompt, Personality, getActionEvaluationPrompt } from '../lib/prompts';
+import { chromium, Browser, Page, BrowserContext } from 'playwright';
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
 // Interface for test actions
 interface TestAction {
@@ -16,403 +16,317 @@ interface TestAction {
   key?: string;               // keyboard presses
   expectedText?: string;      // assertions
   timeout?: number;           // waits
+  result?: {                  // result of the action
+    status: string;
+    message?: string;
+  };
 }
 
 // Interface for test iteration results
 interface TestIterationResult {
-  iteration: number;
   actions: TestAction[];
-  success: boolean;
-  feedback: string;
   screenshot?: any;
+  textContent?: string | null;       // HTML/text content of the page
+  timestamp?: number;         // When this iteration occurred
+  snapshot?: string;         // aria snapshot
 }
 
-class MCPPlaywrightClient {
-  private client: Client;
-  private transport: StdioClientTransport;
+class Agent {
+  private browser: Browser | null = null;
+  private context: BrowserContext | null = null;
+  private page: Page | null = null;
   private testHistory: TestIterationResult[] = [];
+  private personality: Personality;
 
-  constructor() {
-    // Use stdio transport to connect to MCP server process
-    this.transport = new StdioClientTransport({
-      command: 'npx',
-      args: ['@playwright/mcp', '--headless']
+  constructor(personality: Personality) {
+    this.personality = personality;
+  }
+
+  async connect(url: string) {
+    console.log('Connecting to browser...');
+    this.browser = await chromium.launch({ headless: true });
+    console.log('Browser launched successfully');
+    // Enable video recording to src/screenshots
+    this.context = await this.browser.newContext({
+      recordVideo: { dir: 'src/screenshots', size: { width: 1280, height: 720 } }
     });
-    
-    this.client = new Client({
-      name: 'gemini-playwright-client',
-      version: '1.0.0'
-    }, {
-      capabilities: {
-        tools: {}
-      }
+    this.page = await this.context.newPage();
+    await this.page.goto(url);
+    this.testHistory = [];
+    return true;
+  }
+
+  async performAction() {
+    if (!this.page) throw new Error('Page not initialized');
+    // Start video recording is handled by context
+    // Take screenshot at the beginning
+    const screenshotBuffer = await this.page.screenshot({ fullPage: true });
+    const ariaSnapshot = await this.page.locator('body').ariaSnapshot();
+    // Save screenshot if needed
+    this.testHistory.push({ actions: [], screenshot: screenshotBuffer.toString('base64'), timestamp: Date.now(), snapshot: JSON.stringify(ariaSnapshot) });
+
+    // Get page content
+    // const textContent = await this.page.content();
+    let historyContext = '';
+    if (this.testHistory.length > 0) {
+      historyContext = `\nPrevious test iterations:\n${this.testHistory.map((iter, index) => {
+        let iterationInfo = `Iteration ${index + 1}:\n`;
+        iterationInfo += `Actions tried: ${JSON.stringify(iter.actions)}\n`;
+
+        // Add page content context if available
+        if (iter.textContent) {
+          // Truncate page content if too long
+          const contentPreview = iter.textContent.length > 500
+            ? iter.textContent.substring(0, 500) + '...'
+            : iter.textContent;
+          iterationInfo += `Page content: ${contentPreview}\n`;
+        }
+
+        // Add timestamp if available
+        if (iter.timestamp) {
+          iterationInfo += `Time: ${new Date(iter.timestamp).toLocaleTimeString()}\n`;
+        }
+
+        return iterationInfo;
+      }).join('\n')}`;
+    }
+
+    const textContent = await getVisibleText(this.page);
+
+    const analysisPrompt = getAnalysisPrompt(
+      this.personality,
+      textContent,
+      historyContext,
+      true,
+      true,
+      JSON.stringify(ariaSnapshot)
+    );
+
+    console.log(analysisPrompt);
+
+    // gemini call
+    const response = await model.generateContent({
+      contents: [
+        { role: 'user', parts: [{ text: analysisPrompt }] },
+        { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] }
+      ]
     });
-  }
-  async connect() {
-    try {
-      await this.client.connect(this.transport);
-      console.log('🔗 Connected to MCP Playwright server');
-      
-      const tools = await this.client.listTools();
-      console.log('📋 Available tools:', tools.tools.map(t => t.name).join(', '));
-      
-      // Reset test history when connecting
-      this.testHistory = [];
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Failed to connect to MCP server:', error);
-      return false;
+    let actionPlan = response.response.text();
+
+    // Clean up the response - extract JSON from the response
+    // First attempt to find JSON array in the text
+    const jsonMatch = actionPlan.match(/\[\s*\{.*\}\s*\]/s);
+    if (jsonMatch) {
+      actionPlan = jsonMatch[0];
+    } else {
+      // If no JSON array found, try standard cleanup
+      actionPlan = actionPlan.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     }
-  }
 
-  async callTool(name: string, args: any) {
+    // Parse and log the action plan
+    let actions: TestAction[];
     try {
-      const result = await this.client.callTool({ name, arguments: args });
-      return result;
-    } catch (error) {
-      console.error(`❌ Tool call failed for ${name}:`, error);
-      throw error;
+      actions = JSON.parse(actionPlan);
+      actions.forEach((action: TestAction, index: number) => {
+        console.log(`   ${index + 1}. ${action.action}: ${action.description}`);
+      });
+    } catch (parseError) {
+      console.error('❌ Failed to parse action plan as JSON:', parseError);
+      console.log('Raw response:', actionPlan);
+      throw new Error('Failed to parse AI response as JSON');
     }
-  }
-  async testWebsite(url: string, testObjective: string, maxIterations: number = 3) {
-    try {
-      const newPageResult = await this.callTool('browser_tab_new', {});
-      console.log('📄 New page created');
-      
-      // Navigate to the URL
-      await this.callTool('browser_navigate', { url });
-      console.log(`🌐 Navigated to: ${url}`);
-      
-      let currentIteration = 0;
-      let testCompleted = false;
-      let finalResult = null;
-      
-      // Keep testing until we reach max iterations or succeed
-      while (currentIteration < maxIterations && !testCompleted) {
-        currentIteration++;
-        console.log(`\n🔄 Starting iteration ${currentIteration} of ${maxIterations}`);
-        
-        try {
-          // Take screenshot at the beginning of this iteration
-          const screenshotResult = await this.callTool('browser_take_screenshot', {});
-          console.log('📸 Screenshot taken for current state');
-          
-          // Get page content
-          const contentResult = await this.callTool('browser_snapshot', {});
-          const pageContent = (contentResult as any).content?.[0]?.text || '';
-          
-          // Build the prompt with history of previous iterations if available
-          let historyContext = '';
-          if (this.testHistory.length > 0) {
-            historyContext = `\nPrevious test iterations:\n${this.testHistory.map(iter => 
-              `Iteration ${iter.iteration}: ${iter.success ? 'Partially successful' : 'Failed'}\n` +
-              `Actions tried: ${JSON.stringify(iter.actions)}\n` +
-              `Feedback: ${iter.feedback}\n`
-            ).join('\n')}`;
-          }
-            // Use Gemini to analyze the page and determine testing actions
-          const analysisPrompt = `
-You are a web testing expert. You need to test a website to achieve this objective: "${testObjective}"
 
-Here's the current page content:
-${pageContent.substring(0, 2000)}...
-${historyContext}
-
-This is iteration ${currentIteration} of ${maxIterations}.
-${currentIteration > 1 ? 'Based on previous attempts, try a different approach to achieve the objective.' : ''}
-
-Based on the current page state, provide a JSON response with the next testing actions to take. 
-You can use any of the following actions (with or without the browser_ prefix):
-- click: Click on elements (needs selector)
-- type: Type text into inputs (needs selector and text)
-- navigate: Navigate to URLs (needs url)
-- wait_for: Wait for elements (needs selector)
-- take_screenshot: Take screenshots
-- snapshot: Get page content
-- press: Press a keyboard key (needs key name like "Enter", "Tab", "ArrowDown", etc.)
-- assert: Check if an element exists or condition is met (needs selector and optional expectedText)
-
-Respond with a JSON array of actions like:
-[
-  {"action": "click", "selector": "button[type='submit']", "description": "Click submit button"},
-  {"action": "type", "selector": "input[name='email']", "text": "test@example.com", "description": "Type in email field"},
-  {"action": "press", "key": "Enter", "description": "Press Enter to submit form"},
-  {"action": "assert", "selector": ".results", "expectedText": "Success", "description": "Verify results appeared"},
-  {"action": "take_screenshot", "description": "Take screenshot after action"}
-]
-
-Only return the JSON array, no other text.
-`;
-          const response = await model.generateContent(analysisPrompt);
-          let actionPlan = response.response.text();
-          
-          console.log('🤖 Gemini analysis for iteration', currentIteration);
-            // Clean up the response - remove markdown code blocks if present
-          actionPlan = actionPlan.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-            // Parse and log the action plan
-          let actions: TestAction[];
-          try {
-            actions = JSON.parse(actionPlan);
-            console.log(`🤖 Gemini planned ${actions.length} actions for iteration ${currentIteration}:`);
-            actions.forEach((action: TestAction, index: number) => {
-              console.log(`   ${index + 1}. ${action.action}: ${action.description}`);
+    // Execute each action in the plan SEQUENTIALLY (await each action)
+    const actionResults: TestAction[] = [];
+    for (const action of actions) {
+      console.log(`🎬 Executing: ${action.description}`);
+      let result: any = { status: 'success' };
+      try {
+        if (!this.page) throw new Error('Page not initialized');
+        // Capture state BEFORE action
+        const beforeText = await getVisibleText(this.page);
+        const beforeSnapshot = await this.page.locator('body').ariaSnapshot();
+        // Normalize action name by removing browser_ prefix if present
+        const actionType = action.action.replace('browser_', '');
+        switch (actionType) {
+          case 'click':
+            if (action.selector) await this.page.click(action.selector, { timeout: action.timeout || 5000 });
+            break;
+          case 'type':
+            if (action.selector && action.text !== undefined) await this.page.fill(action.selector, action.text);
+            break;
+          case 'wait':
+          case 'wait_for':
+            if (action.selector) await this.page.waitForSelector(action.selector, { timeout: action.timeout || 5000 });
+            break;
+          case 'screenshot':
+          case 'take_screenshot':
+            const screenshot = await this.page.screenshot({ fullPage: true });
+            this.testHistory.push({
+              actions: [action],
+              screenshot: screenshot.toString('base64'),
+              timestamp: Date.now()
             });
-          } catch (parseError) {
-            console.error('❌ Failed to parse action plan as JSON:', parseError);
-            console.log('Raw response:', actionPlan);
-            throw new Error('Failed to parse AI response as JSON');
-          }
-          
-          // Execute each action in the plan
-          for (const action of actions) {
-            console.log(`🎬 Executing: ${action.description}`);
+            console.log('📸 Screenshot captured and stored in history');
+            break;
+          case 'navigate':
+            if (action.url) await this.page.goto(action.url);
+            break;
+          case 'snapshot':
+            const snapshotContent = await this.page.locator('body').ariaSnapshot();
+            // Get text content of all visible elements (not just body)
+            const visibleTextContent = await getVisibleText(this.page);
+            this.testHistory.push({
+              actions: [action],
+              textContent: visibleTextContent,
+              snapshot: JSON.stringify(snapshotContent),
+              timestamp: Date.now()
+            });
+            console.log('📄 Page content captured and stored in history');
+            break;
+          case 'press':
+            await this.page.keyboard.press(action.key || 'Enter');
+            console.log(`🎹 Pressed key: ${action.key || 'Enter'}`);
+            break;
+          case 'assert':
             try {
-              // Normalize action name by removing browser_ prefix if present
-              const actionType = action.action.replace('browser_', '');
-                switch (actionType) {
-                case 'click':
-                  await this.callTool('browser_click', { selector: action.selector });
-                  break;
-                case 'type':
-                  await this.callTool('browser_type', { 
-                    selector: action.selector, 
-                    text: action.text 
-                  });
-                  break;
-                case 'wait':
-                case 'wait_for':
-                  await this.callTool('browser_wait_for', { 
-                    selector: action.selector 
-                  });
-                  break;
-                case 'screenshot':
-                case 'take_screenshot':
-                  await this.callTool('browser_take_screenshot', {});
-                  break;
-                case 'navigate':
-                  await this.callTool('browser_navigate', { url: action.url });
-                  break;
-                case 'snapshot':
-                  await this.callTool('browser_snapshot', {});
-                  break;
-                case 'press':
-                  await this.callTool('browser_press_key', { 
-                    key: action.key || 'Enter'  // Default to Enter if not specified
-                  });
-                  console.log(`🎹 Pressed key: ${action.key || 'Enter'}`);
-                  break;
-                case 'assert':
-                  try {
-                    // First wait for the element to ensure it's present
-                    await this.callTool('browser_wait_for', { 
-                      selector: action.selector,
-                      timeout: 5000  // 5 seconds timeout
-                    });
-                    console.log(`✅ Assertion passed: Element exists: ${action.selector}`);
-                    
-                    // If expectedText is provided, verify the text content
-                    if (action.expectedText) {
-                      // We can't directly verify text content with MCP tools
-                      // So we'll take a snapshot and check if the text is present
-                      const snapshot = await this.callTool('browser_snapshot', {});
-                      const content = (snapshot as any).content?.[0]?.text || '';
-                      
-                      if (content.includes(action.expectedText)) {
-                        console.log(`✅ Assertion passed: Text "${action.expectedText}" found`);
-                      } else {
-                        console.log(`❌ Assertion failed: Text "${action.expectedText}" not found`);
-                      }
-                    }
-                  } catch (assertError) {
-                    console.error(`❌ Assertion failed: ${action.description}`, assertError);
+              if (action.selector) {
+                await this.page.waitForSelector(action.selector, { timeout: 5000 });
+                console.log(`✅ Assertion passed: Element exists: ${action.selector}`);
+                if (action.expectedText) {
+                  const content = await this.page.textContent(action.selector);
+                  if (content && content.includes(action.expectedText)) {
+                    console.log(`✅ Assertion passed: Text "${action.expectedText}" found`);
+                    result = { status: 'success', message: `Text '${action.expectedText}' found` };
+                  } else {
+                    console.log(`❌ Assertion failed: Text "${action.expectedText}" not found`);
+                    result = { status: 'assertion_failed', message: `Text '${action.expectedText}' not found` };
                   }
-                  break;
-                default:
-                  console.warn(`⚠️ Unknown action type: ${action.action}`);
-                  // Try to call the tool directly if it starts with browser_
-                  if (action.action.startsWith('browser_')) {
-                    try {
-                      console.log(`🔄 Attempting to call tool directly: ${action.action}`);
-                      await this.callTool(action.action, { 
-                        selector: action.selector,
-                        text: action.text,
-                        url: action.url
-                      });
-                    } catch (directCallError) {
-                      console.error(`❌ Direct tool call failed for ${action.action}:`, directCallError);
-                    }
-                  }
+                } else {
+                  result = { status: 'success', message: `Element '${action.selector}' exists` };
+                }
               }
-              
-              // Small delay between actions
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            } catch (actionError) {
-              console.error(`❌ Action failed: ${action.description}`, actionError);
-              // Continue with the next action rather than failing the entire test
+            } catch (assertError) {
+              console.error(`❌ Assertion failed: ${action.description}`, assertError);
+              const err = assertError as any;
+              result = { status: 'assertion_error', message: err?.message || String(assertError) };
             }
-          }
-          
-          // Take final screenshot and get content for this iteration
-          const finalScreenshot = await this.callTool('browser_take_screenshot', {});
-          const finalContent = await this.callTool('browser_snapshot', {});
-          const finalPageContent = (finalContent as any).content?.[0]?.text || '';
-
-            // TODO: change this god awful prompt
-          const evaluationPrompt = `
-Test objective was: "${testObjective}"
-
-Current iteration: ${currentIteration} of ${maxIterations}
-
-Final page content after actions:
-${finalPageContent.substring(0, 2000)}...
-
-${historyContext}
-
-Based on the current page state, evaluate if the test objective was achieved. Provide:
-1. A brief summary of what happened during this iteration
-2. Whether the test was successful in achieving the objective (respond with "Success: Yes" or "Success: No")
-3. If not fully successful, what specific issues remain to be solved
-4. Suggestions for the next iteration (if needed)
-5. Rate the success as a percentage (0-100%)
-
-For a web test, success means the specified user journey was completed and the expected content or functionality was verified.
-If you're testing search functionality, success means the search query was entered, the search was submitted, and results were displayed.
-If you're testing a form, success means the form was filled and submitted with verification of success.
-
-Your evaluation should be constructive and help guide the next iteration.
-`;
-
-          const evaluation = await model.generateContent(evaluationPrompt);
-          const iterationResult = evaluation.response.text();
-          
-          console.log(`📊 Iteration ${currentIteration} Results:`);
-          console.log(iterationResult);
-            // Store this iteration in history
-          this.testHistory.push({
-            iteration: currentIteration,
-            actions: actions,
-            success: iterationResult.includes('100%') || 
-                    iterationResult.toLowerCase().includes('objective achieved') || 
-                    iterationResult.toLowerCase().includes('test was successful') ||
-                    iterationResult.toLowerCase().includes('success: yes'),
-            feedback: iterationResult,
-            screenshot: finalScreenshot
-          });
-          
-          // Check if we've successfully completed the test
-          if (
-            iterationResult.includes('100%') || 
-            iterationResult.toLowerCase().includes('objective achieved') || 
-            iterationResult.toLowerCase().includes('test was successful') ||
-            iterationResult.toLowerCase().includes('success: yes')
-          ) {
-            console.log('🎉 Test objective achieved!');
-            testCompleted = true;
-            finalResult = {
-              success: true,
-              objective: testObjective,
-              iterations: currentIteration,
-              history: this.testHistory,
-              actions: actions,
-              result: iterationResult
-            };
-          } else if (currentIteration >= maxIterations) {
-            // Final iteration but not fully successful
-            console.log('⚠️ Maximum iterations reached without full success');
-              // Do a final evaluation across all iterations
-            const finalEvaluationPrompt = `
-Test objective was: "${testObjective}"
-
-Test conducted over ${maxIterations} iterations.
-${this.testHistory.map(iter => 
-  `\nIteration ${iter.iteration} summary:\n${iter.feedback.substring(0, 200)}...`
-).join('\n')}
-
-Provide a comprehensive final assessment:
-1. What worked and what didn't work across all iterations
-2. The closest we got to achieving the objective (which iteration)
-3. Overall success rating (0-100%)
-4. Specific suggestions for future testing
-5. Exact steps that would be needed to achieve the test objective
-
-Your evaluation should be detailed and provide concrete, actionable feedback.
-`;
-            
-            const finalEvaluation = await model.generateContent(finalEvaluationPrompt);
-            const finalAssessment = finalEvaluation.response.text();
-            
-            console.log('📑 Final Assessment:');
-            console.log(finalAssessment);
-            
-            finalResult = {
-              success: false,
-              objective: testObjective,
-              iterations: currentIteration,
-              history: this.testHistory,
-              result: finalAssessment
-            };
-          }
-          
-          // If not the last iteration and not completed, navigate back to the original URL to reset
-          if (!testCompleted && currentIteration < maxIterations) {
-            console.log('🔄 Resetting page for next iteration...');
-            await this.callTool('browser_navigate', { url });
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Allow page to load
-          }
-          
-        } catch (iterationError) {
-          console.error(`❌ Iteration ${currentIteration} failed:`, iterationError);
-          
-          // Add the failed iteration to history
-          this.testHistory.push({
-            iteration: currentIteration,
-            actions: [],
-            success: false,
-            feedback: `Technical error: ${iterationError instanceof Error ? iterationError.message : String(iterationError)}`
-          });
-          
-          // Try to reset for next iteration if not the last one
-          if (currentIteration < maxIterations) {
-            try {
-              console.log('🔄 Attempting to reset page after error...');
-              await this.callTool('browser_navigate', { url });
-              await new Promise(resolve => setTimeout(resolve, 2000)); // Allow page to load
-            } catch (resetError) {
-              console.error('❌ Failed to reset page:', resetError);
+            break;
+          case 'scroll':
+            if (action.selector) {
+              const element = await this.page.$(action.selector);
+              if (element) {
+                await element.scrollIntoViewIfNeeded();
+                console.log(`📜 Scrolled to element: ${action.selector}`);
+                result = { status: 'success', message: `Scrolled to element: ${action.selector}` };
+              } else {
+                console.warn(`⚠️ Element not found for scrolling: ${action.selector}`);
+                result = { status: 'not_found', message: `Element not found: ${action.selector}` };
+              }
+            } else {
+              await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+              console.log('📜 Scrolled to bottom of the page');
+              result = { status: 'success', message: 'Scrolled to bottom of the page' };
             }
+            break;
+          default:
+            // No-op for unknown actions
+            result = { status: 'unknown_action', message: `Unknown action: ${actionType}` };
+            break;
+        }
+        // Capture state AFTER action
+        const afterText = await getVisibleText(this.page);
+        const afterSnapshot = await this.page.locator('body').ariaSnapshot();
+        // Evaluate the action
+        // Start evaluation prompt asynchronously
+        const evalPromise = (async () => {
+          const evalPrompt = getActionEvaluationPrompt(
+            this.personality,
+            action,
+            JSON.stringify(beforeSnapshot),
+            JSON.stringify(afterSnapshot),
+            beforeText,
+            afterText
+          );
+          const evalResponse = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: evalPrompt }] }]
+          });
+          let evaluation;
+          try {
+            evaluation = evalResponse.response.text();
+          } catch (e) {
+            evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [] };
           }
+          console.log(`🔍 Action evaluation:`, evaluation);
+        })();
+      } catch (actionError) {
+        console.error(`❌ Action failed: ${action.description}`, actionError);
+        const err = actionError as any;
+        if (err?.name === 'TimeoutError') {
+          result = { status: 'timeout', message: err?.message };
+        } else {
+          result = { status: 'error', message: err?.message || String(actionError) };
         }
       }
-      
-      return finalResult || {
-        success: false,
-        objective: testObjective,
-        iterations: currentIteration,
-        history: this.testHistory,
-        error: 'Test could not be completed due to technical issues'
-      };
-      
-    } catch (error) {
-      console.error('❌ Test execution failed:', error);
-      return { 
-        success: false, 
-        objective: testObjective,
-        iterations: 0,
-        history: this.testHistory,
-        error: error instanceof Error ? error.message : String(error) 
-      };
+      // Attach result to action and store
+      actionResults.push({ ...action, result });
     }
+    // Take final screenshot and get content for this iteration
+    const finalScreenshot = await this.page.screenshot({ fullPage: true });
+    const finalPageSnap = await this.page.locator('body').ariaSnapshot();
+    const finaltextContent = await getVisibleText(this.page);
+
+    this.testHistory.push({
+      actions: actionResults,
+      textContent: finaltextContent,
+      timestamp: Date.now()
+    });
+    console.log('📝 Test iteration completed and saved to history');
+    // Save video to screenshots directory (after all iterations and post-processing)
+    if (this.page && this.page.video) {
+      const video = this.page.video();
+      if (video) {
+        const videoPath = await video.path();
+        const fs = require('fs');
+        const path = require('path');
+        const destDir = path.resolve('src/screenshots');
+        if (!fs.existsSync(destDir)) {
+          fs.mkdirSync(destDir, { recursive: true });
+        }
+        const destPath = path.join(destDir, `test-video-${Date.now()}.webm`);
+        fs.copyFileSync(videoPath, destPath);
+        console.log(`🎥 Video saved to ${destPath}`);
+      }
+    }
+    // Return actions for session control
+    return actionResults;
   }
 
   async disconnect() {
-    try {
-      await this.client.close();
-      console.log('🔌 Disconnected from MCP server');
-    } catch (error) {
-      console.error('❌ Error disconnecting:', error);
-    }
+    if (this.browser) await this.browser.close();
   }
 }
 
-export { MCPPlaywrightClient };
+// Helper to get visible text content from the page
+async function getVisibleText(page: Page): Promise<string> {
+  return await page.evaluate(() => {
+    function isVisible(elem: Element): boolean {
+      const style = window.getComputedStyle(elem);
+      return (
+        style &&
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        style.opacity !== '0' &&
+        elem.getClientRects().length > 0
+      );
+    }
+    const all = Array.from(document.querySelectorAll('body *'));
+    const leafVisible = all.filter(el => {
+      if (!isVisible(el)) return false;
+      return !Array.from(el.children).some(child => isVisible(child));
+    });
+    return leafVisible.map(el => el.textContent?.trim() || '').filter(Boolean).join(' ');
+  });
+}
+
+export { Agent };
