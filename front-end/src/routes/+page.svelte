@@ -112,7 +112,7 @@
           <a
                   class="text-white rounded-full px-8 py-3 text-lg font-semibold"
                   style="background-color: #DC5270;"
-                  href="/dashboard"
+                  href="/login"
           >
             GET STARTED
           </a>
