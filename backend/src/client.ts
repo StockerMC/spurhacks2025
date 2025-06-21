@@ -257,7 +257,8 @@ Only return the JSON array, no other text.
           const finalScreenshot = await this.callTool('browser_take_screenshot', {});
           const finalContent = await this.callTool('browser_snapshot', {});
           const finalPageContent = (finalContent as any).content?.[0]?.text || '';
-            // Use Gemini to evaluate the test results for this iteration
+
+            // TODO: change this god awful prompt
           const evaluationPrompt = `
 Test objective was: "${testObjective}"
 
@@ -412,55 +413,6 @@ Your evaluation should be detailed and provide concrete, actionable feedback.
       console.error('❌ Error disconnecting:', error);
     }
   }
-}
-
-// Example usage
-async function runTest() {
-  const client = new MCPPlaywrightClient();
-  
-  try {
-    const connected = await client.connect();
-    if (!connected) {
-      console.error('❌ Failed to connect to MCP server');
-      return;
-    }
-
-    // Run test with up to 3 iterations
-    const result = await client.testWebsite(
-      'https://example.com', 
-      'Navigate the website and check if the main content loads properly',
-      3
-    );
-
-    console.log('\n📝 Test Summary:');
-    console.log('='.repeat(60));
-    console.log(`Status: ${result.success ? '✅ Success' : '❌ Failed'}`);
-    console.log(`Iterations: ${result.iterations} of ${3}`);
-    console.log('='.repeat(60));
-    console.log('\nTest history:');
-    
-    if (result.history && result.history.length > 0) {
-      result.history.forEach((iter, index) => {
-        console.log(`Iteration ${iter.iteration}: ${iter.success ? '✅' : '❌'}`);
-        console.log(`Actions: ${iter.actions.length}`);
-        console.log(`Feedback: ${iter.feedback.substring(0, 100)}...`);
-        console.log('-'.repeat(40));
-      });
-    }
-
-    console.log('\nFinal Assessment:');
-    console.log(result.result || result.error);
-
-  } catch (error) {
-    console.error('❌ Test failed:', error);
-  } finally {
-    await client.disconnect();
-  }
-}
-
-// Run if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  runTest();
 }
 
 export { MCPPlaywrightClient };
