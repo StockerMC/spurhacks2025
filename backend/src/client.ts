@@ -16,6 +16,10 @@ interface TestAction {
   key?: string;               // keyboard presses
   expectedText?: string;      // assertions
   timeout?: number;           // waits
+  result?: {                  // result of the action
+    status: string;
+    message?: string;
+  };
 }
 
 // Interface for test iteration results
@@ -38,7 +42,7 @@ class Agent {
     this.personality = personality;
   }
 
-  async connect(url:string) {
+  async connect(url: string) {
     console.log('Connecting to browser...');
     this.browser = await chromium.launch({ headless: true });
     console.log('Browser launched successfully');
@@ -57,7 +61,7 @@ class Agent {
     // Start video recording is handled by context
     // Take screenshot at the beginning
     const screenshotBuffer = await this.page.screenshot({ fullPage: true });
-    const ariaSnapshot = await this.page.accessibility.snapshot();
+    const ariaSnapshot = await this.page.locator('body').ariaSnapshot();
     // Save screenshot if needed
     this.testHistory.push({ actions: [], screenshot: screenshotBuffer.toString('base64'), timestamp: Date.now(), snapshot: JSON.stringify(ariaSnapshot) });
 
@@ -68,21 +72,21 @@ class Agent {
       historyContext = `\nPrevious test iterations:\n${this.testHistory.map((iter, index) => {
         let iterationInfo = `Iteration ${index + 1}:\n`;
         iterationInfo += `Actions tried: ${JSON.stringify(iter.actions)}\n`;
-        
+
         // Add page content context if available
         if (iter.textContent) {
           // Truncate page content if too long
-          const contentPreview = iter.textContent.length > 500 
-            ? iter.textContent.substring(0, 500) + '...' 
+          const contentPreview = iter.textContent.length > 500
+            ? iter.textContent.substring(0, 500) + '...'
             : iter.textContent;
           iterationInfo += `Page content: ${contentPreview}\n`;
         }
-        
+
         // Add timestamp if available
         if (iter.timestamp) {
           iterationInfo += `Time: ${new Date(iter.timestamp).toLocaleTimeString()}\n`;
         }
-        
+
         return iterationInfo;
       }).join('\n')}`;
     }
@@ -103,12 +107,12 @@ class Agent {
     // gemini call
     const response = await model.generateContent({
       contents: [
-      { role: 'user', parts: [{ text: analysisPrompt }] },
-      { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] }
+        { role: 'user', parts: [{ text: analysisPrompt }] },
+        { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] }
       ]
     });
     let actionPlan = response.response.text();
-    
+
     // Clean up the response - extract JSON from the response
     // First attempt to find JSON array in the text
     const jsonMatch = actionPlan.match(/\[\s*\{.*\}\s*\]/s);
@@ -118,7 +122,7 @@ class Agent {
       // If no JSON array found, try standard cleanup
       actionPlan = actionPlan.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     }
-    
+
     // Parse and log the action plan
     let actions: TestAction[];
     try {
@@ -131,129 +135,149 @@ class Agent {
       console.log('Raw response:', actionPlan);
       throw new Error('Failed to parse AI response as JSON');
     }
-    
-    // Execute each action in the plan
+
+    // Execute each action in the plan SEQUENTIALLY (await each action)
+    const actionResults: TestAction[] = [];
     for (const action of actions) {
       console.log(`🎬 Executing: ${action.description}`);
-      // Run each action asynchronously, but don't await here
-      (async () => {
-        try {
-          if (!this.page) throw new Error('Page not initialized');
-          // Capture state BEFORE action
-          const beforeText = await getVisibleText(this.page);
-          const beforeSnapshot = await this.page.accessibility.snapshot();
-          // Normalize action name by removing browser_ prefix if present
-          const actionType = action.action.replace('browser_', '');
-          switch (actionType) {
-        case 'click':
-          if (action.selector) await this.page.click(action.selector);
-          break;
-        case 'type':
-          if (action.selector && action.text !== undefined) await this.page.fill(action.selector, action.text);
-          break;
-        case 'wait':
-        case 'wait_for':
-          if (action.selector) await this.page.waitForSelector(action.selector);
-          break;
-        case 'screenshot':
-        case 'take_screenshot':
-          const screenshot = await this.page.screenshot({ fullPage: true });
-          this.testHistory.push({
-            actions: [action],
-            screenshot: screenshot.toString('base64'),
-            timestamp: Date.now()
-          });
-          console.log('📸 Screenshot captured and stored in history');
-          break;
-        case 'navigate':
-          if (action.url) await this.page.goto(action.url);
-          break;
-        case 'snapshot':
-          const snapshotContent = await this.page.accessibility.snapshot();
-          // Get text content of all visible elements (not just body)
-          const visibleTextContent = await getVisibleText(this.page);
-          this.testHistory.push({
-            actions: [action],
-            textContent: visibleTextContent,
-            snapshot: JSON.stringify(snapshotContent),
-            timestamp: Date.now()
-          });
-          console.log('📄 Page content captured and stored in history');
-          break;
-        case 'press':
-          await this.page.keyboard.press(action.key || 'Enter');
-          console.log(`🎹 Pressed key: ${action.key || 'Enter'}`);
-          break;
-        case 'assert':
-          try {
+      let result: any = { status: 'success' };
+      try {
+        if (!this.page) throw new Error('Page not initialized');
+        // Capture state BEFORE action
+        const beforeText = await getVisibleText(this.page);
+        const beforeSnapshot = await this.page.locator('body').ariaSnapshot();
+        // Normalize action name by removing browser_ prefix if present
+        const actionType = action.action.replace('browser_', '');
+        switch (actionType) {
+          case 'click':
+            if (action.selector) await this.page.click(action.selector, { timeout: action.timeout || 5000 });
+            break;
+          case 'type':
+            if (action.selector && action.text !== undefined) await this.page.fill(action.selector, action.text);
+            break;
+          case 'wait':
+          case 'wait_for':
+            if (action.selector) await this.page.waitForSelector(action.selector, { timeout: action.timeout || 5000 });
+            break;
+          case 'screenshot':
+          case 'take_screenshot':
+            const screenshot = await this.page.screenshot({ fullPage: true });
+            this.testHistory.push({
+              actions: [action],
+              screenshot: screenshot.toString('base64'),
+              timestamp: Date.now()
+            });
+            console.log('📸 Screenshot captured and stored in history');
+            break;
+          case 'navigate':
+            if (action.url) await this.page.goto(action.url);
+            break;
+          case 'snapshot':
+            const snapshotContent = await this.page.locator('body').ariaSnapshot();
+            // Get text content of all visible elements (not just body)
+            const visibleTextContent = await getVisibleText(this.page);
+            this.testHistory.push({
+              actions: [action],
+              textContent: visibleTextContent,
+              snapshot: JSON.stringify(snapshotContent),
+              timestamp: Date.now()
+            });
+            console.log('📄 Page content captured and stored in history');
+            break;
+          case 'press':
+            await this.page.keyboard.press(action.key || 'Enter');
+            console.log(`🎹 Pressed key: ${action.key || 'Enter'}`);
+            break;
+          case 'assert':
+            try {
+              if (action.selector) {
+                await this.page.waitForSelector(action.selector, { timeout: 5000 });
+                console.log(`✅ Assertion passed: Element exists: ${action.selector}`);
+                if (action.expectedText) {
+                  const content = await this.page.textContent(action.selector);
+                  if (content && content.includes(action.expectedText)) {
+                    console.log(`✅ Assertion passed: Text "${action.expectedText}" found`);
+                    result = { status: 'success', message: `Text '${action.expectedText}' found` };
+                  } else {
+                    console.log(`❌ Assertion failed: Text "${action.expectedText}" not found`);
+                    result = { status: 'assertion_failed', message: `Text '${action.expectedText}' not found` };
+                  }
+                } else {
+                  result = { status: 'success', message: `Element '${action.selector}' exists` };
+                }
+              }
+            } catch (assertError) {
+              console.error(`❌ Assertion failed: ${action.description}`, assertError);
+              const err = assertError as any;
+              result = { status: 'assertion_error', message: err?.message || String(assertError) };
+            }
+            break;
+          case 'scroll':
             if (action.selector) {
-          await this.page.waitForSelector(action.selector, { timeout: 5000 });
-          console.log(`✅ Assertion passed: Element exists: ${action.selector}`);
-          if (action.expectedText) {
-            const content = await this.page.textContent(action.selector);
-            if (content && content.includes(action.expectedText)) {
-              console.log(`✅ Assertion passed: Text "${action.expectedText}" found`);
+              const element = await this.page.$(action.selector);
+              if (element) {
+                await element.scrollIntoViewIfNeeded();
+                console.log(`📜 Scrolled to element: ${action.selector}`);
+                result = { status: 'success', message: `Scrolled to element: ${action.selector}` };
+              } else {
+                console.warn(`⚠️ Element not found for scrolling: ${action.selector}`);
+                result = { status: 'not_found', message: `Element not found: ${action.selector}` };
+              }
             } else {
-              console.log(`❌ Assertion failed: Text "${action.expectedText}" not found`);
+              await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+              console.log('📜 Scrolled to bottom of the page');
+              result = { status: 'success', message: 'Scrolled to bottom of the page' };
             }
-          }
-            }
-          } catch (assertError) {
-            console.error(`❌ Assertion failed: ${action.description}`, assertError);
-          }
-          break;
-        case 'scroll':
-          if (action.selector) {
-            const element = await this.page.$(action.selector);
-            if (element) {
-          await element.scrollIntoViewIfNeeded();
-          console.log(`📜 Scrolled to element: ${action.selector}`);
-            } else {
-          console.warn(`⚠️ Element not found for scrolling: ${action.selector}`);
-            }
-          } else {
-            await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-            console.log('📜 Scrolled to bottom of the page');
-          }
-          break;
-        default:
-          // No-op for unknown actions
-          break;
-          }
-          // Capture state AFTER action
-          const afterText = await getVisibleText(this.page);
-          const afterSnapshot = await this.page.accessibility.snapshot();
-          // Evaluate the action
+            break;
+          default:
+            // No-op for unknown actions
+            result = { status: 'unknown_action', message: `Unknown action: ${actionType}` };
+            break;
+        }
+        // Capture state AFTER action
+        const afterText = await getVisibleText(this.page);
+        const afterSnapshot = await this.page.locator('body').ariaSnapshot();
+        // Evaluate the action
+        // Start evaluation prompt asynchronously
+        const evalPromise = (async () => {
           const evalPrompt = getActionEvaluationPrompt(
-        this.personality,
-        action,
-        JSON.stringify(beforeSnapshot),
-        JSON.stringify(afterSnapshot),
-        beforeText,
-        afterText
+            this.personality,
+            action,
+            JSON.stringify(beforeSnapshot),
+            JSON.stringify(afterSnapshot),
+            beforeText,
+            afterText
           );
           const evalResponse = await model.generateContent({
-        contents: [ { role: 'user', parts: [{ text: evalPrompt }] } ]
+            contents: [{ role: 'user', parts: [{ text: evalPrompt }] }]
           });
           let evaluation;
           try {
-        evaluation = evalResponse.response.text();
+            evaluation = evalResponse.response.text();
           } catch (e) {
-        evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [] };
+            evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [] };
           }
           console.log(`🔍 Action evaluation:`, evaluation);
-        } catch (actionError) {
-          console.error(`❌ Action failed: ${action.description}`, actionError);
+        })();
+      } catch (actionError) {
+        console.error(`❌ Action failed: ${action.description}`, actionError);
+        const err = actionError as any;
+        if (err?.name === 'TimeoutError') {
+          result = { status: 'timeout', message: err?.message };
+        } else {
+          result = { status: 'error', message: err?.message || String(actionError) };
         }
-      })();
-    }    
+      }
+      // Attach result to action and store
+      actionResults.push({ ...action, result });
+    }
     // Take final screenshot and get content for this iteration
     const finalScreenshot = await this.page.screenshot({ fullPage: true });
-    const finalPageSnap = await this.page.accessibility.snapshot();
+    const finalPageSnap = await this.page.locator('body').ariaSnapshot();
     const finaltextContent = await getVisibleText(this.page);
-    
+
     this.testHistory.push({
-      actions: actions,
+      actions: actionResults,
       textContent: finaltextContent,
       timestamp: Date.now()
     });
@@ -274,6 +298,8 @@ class Agent {
         console.log(`🎥 Video saved to ${destPath}`);
       }
     }
+    // Return actions for session control
+    return actionResults;
   }
 
   async disconnect() {

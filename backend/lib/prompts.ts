@@ -8,15 +8,18 @@ export function getAnalysisPrompt(
   includeScreenshot: boolean,
   snapshot?: string // optional accessibility snapshot or previous snapshot JSON
 ) {
-  const personalityTone = getEvalTone(personality);
+  const personalityInstructions = getEvalTone(personality); // <-- moved to top & renamed for clarity
 
   const preambleExtras = [];
 
+  console.log(snapshot)
+  throw new Error("Snapshot is not supported yet");
   if (includeSnapshot) {
     preambleExtras.push(
       `{ "action": "snapshot", "description": "Capture updated HTML snapshot before analysis" }`
     );
   }
+
   if (includeScreenshot) {
     preambleExtras.push(
       `{ "action": "take_screenshot", "description": "Capture updated visual state of the page before analysis" }`
@@ -24,16 +27,18 @@ export function getAnalysisPrompt(
   }
 
   const autoActions = preambleExtras.length
-    ? `\nStart with these auto-captured context actions:\n\`\`\`json\n[${preambleExtras.join(",\n")}]\n\`\`\`\nThen continue with your suggested actions.\n`
+    ? `\nStart with these auto-captured context actions (already performed, do not repeat them):\n\`\`\`json\n[${preambleExtras.join(",\n")}]\n\`\`\`\nThen continue with your suggested actions.\n`
     : "";
 
-  // Add snapshot content if provided
   const snapshotSection = snapshot
-    ? `\nAccessibility Snapshot (JSON):\n\`\`\`json\n${snapshot}\n\`\`\`\n`
+    ? `Snapshot (JSON):\n\`\`\`json\n${snapshot}\n\`\`\`\n`
     : "";
 
   return `
 You are a test agent with this personality: "${personality}"
+
+--- Tester Role Instructions ---
+${personalityInstructions}
 
 Your job is to decide the **next testing actions** based on the page and what has already been tried.
 
@@ -72,18 +77,16 @@ Available actions:
 - \`snapshot\` — use only to capture full page HTML at useful moments
 - \`take_screenshot\` — for visual UI transitions, **only when something is wrong or worth reporting**
 - \`set_viewport\` — simulate screen sizes; needs \`width\` and \`height\`
-- \`assert\` — check if an element exists or contains expected tex
+- \`assert\` — check if an element exists or contains expected text
+- \`end_session\` — to finish the test session. if not present, the session will continue. only use if history is fully explored.
 
-Your response must ONLY be a valid JSON array like:
+Your response must ONLY be a valid **JSON array** like this — do NOT include any commentary or explanation:
 \`\`\`json
 [
   { "action": "type", "selector": "input[name='email']", "text": "test@example.com", "description": "Type in email" },
   { "action": "click", "selector": "button[type='submit']", "description": "Submit the form" }
 ]
 \`\`\`
-
-Respond in the style of this tester:
-${personalityTone}
 `;
 }
 
@@ -162,16 +165,16 @@ ${beforeText.substring(0, 1000)}${beforeText.length > 1000 ? "..." : ""}
 Page Content AFTER:
 ${afterText.substring(0, 1000)}${afterText.length > 1000 ? "..." : ""}
 
-Accessibility Snapshot BEFORE:
+Snapshot BEFORE:
 ${beforeSnapshot}
 
-Accessibility Snapshot AFTER:
+Snapshot AFTER:
 ${afterSnapshot}
 
 Based on the action intent and observed changes, determine:
 1. Did the action succeed or fail?
 2. What specifically changed as a result of this action?
-3. Were there any accessibility issues, errors, or unexpected behaviors?
+3. Were there any issues, errors, or unexpected behaviors?
 
 Return your evaluation as JSON:
 {
@@ -203,7 +206,7 @@ ${JSON.stringify(testHistory, null, 2)}
 Final Page Content:
 ${finalText.substring(0, 2000)}${finalText.length > 2000 ? "..." : ""}
 
-Final Accessibility Snapshot:
+Final Snapshot:
 ${finalSnapshot}
 
 ---
