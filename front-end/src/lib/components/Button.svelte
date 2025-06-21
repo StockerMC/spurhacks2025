@@ -1,5 +1,4 @@
 <script lang="ts">
-  // FIXME: SUPPORT GIFS/IMAGES SINCE MERGE CONFLICT OVERWROTE AARON'S CHANGES
   interface Props {
     variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'dark' | 'text';
     size?: 'sm' | 'md' | 'lg';

@@ -1,5 +1,5 @@
 <script>
-  import Card from "$lib/components/Card.svelte";
+  import HomeCard from "$lib/components/HomeCard.svelte";
   import Logo from "$lib/images/logo.png"
   import CatBall from "$lib/images/cat_ball.gif";
   import Background from "$lib/images/background.jpg";
@@ -86,9 +86,9 @@
       </a>
     </nav>
     <div class="flex items-center text-xl gap-8">
-      <button class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
-        Sign In
-      </button>
+      <a href="/login" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+        Log In
+      </a>
       <button class="border-2 py-2 border-gray-700 text-gray-700 rounded-full px-6">
         Sign Up
       </button>
@@ -154,7 +154,7 @@
     </div>
   </div>
   <div class="flex justify-center w-full pt-12">
-    <Card>
+    <HomeCard>
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
         {#each profiles as profile}
           <LandingCard
@@ -165,7 +165,7 @@
           />
         {/each}
       </div>
-    </Card>
+    </HomeCard>
   </div>
 </div>
 
