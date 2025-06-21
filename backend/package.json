@@ -8,8 +8,7 @@
     "test": "bun run src/test-client.ts",
     "test:connection": "bun run src/test-client.ts connection",
     "test:all": "bun run src/test-client.ts all",
-    "test:single": "bun run src/test-client.ts single",
-    "test:dashboard": "bun run src/test-dashboard.ts"
+    "test:single": "bun run src/test-client.ts single"
   },
   "dependencies": {
     "@elysiajs/websocket": "^0.2.8",
