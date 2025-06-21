@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getAnalysisPrompt, Personality, getActionEvaluationPrompt } from '../lib/prompts';
+import { getAnalysisPrompt, Personality, getActionEvaluationPrompt, getSelectorFromAria } from '../lib/prompts';
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
+import * as path from 'path';
+import * as fs from 'fs';
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
@@ -9,7 +11,8 @@ export const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 // Interface for test actions
 interface TestAction {
   action: string;
-  selector?: string;
+  rawSelector?: { role: string; name?: string }; // raw selector for aria snapshot
+  selector?: string; // selector can be an object or a string
   text?: string;
   url?: string;
   description: string;
@@ -62,7 +65,17 @@ class Agent {
     if (!this.page) throw new Error('Page not initialized');
     // Start video recording is handled by context
     // Take screenshot at the beginning
-    const screenshotBuffer = await this.page.screenshot({ fullPage: true });
+    // TODO FIGURE OUT IF FULL PAGE IS BETTER
+    const screenshotBuffer = await this.page.screenshot({ fullPage: false });
+    // Save screenshot to screenshots folder
+    // const screenshotsDir = path.resolve('src/screenshots');
+    // if (!fs.existsSync(screenshotsDir)) {
+    //   fs.mkdirSync(screenshotsDir, { recursive: true });
+    // }
+    // const screenshotPath = path.join(screenshotsDir, `screenshot-${Date.now()}.png`);
+    // fs.writeFileSync(screenshotPath, screenshotBuffer);
+    // console.log(`📸 Screenshot saved to ${screenshotPath}`);
+    // // throw new Error('Screenshot saved to screenshots folder, but this is not supported yet.'); // TODO: remove this line when screenshot saving is implemented
     const ariaSnapshot = await this.page.locator('body').ariaSnapshot();
     // Save screenshot if needed
     this.testHistory.push({ actions: [], screenshot: screenshotBuffer.toString('base64'), timestamp: Date.now(), snapshot: JSON.stringify(ariaSnapshot) });
@@ -71,24 +84,9 @@ class Agent {
     // const textContent = await this.page.content();
     let historyContext = '';
     if (this.testHistory.length > 0) {
-      historyContext = `\nPrevious test iterations:\n${this.testHistory.map((iter, index) => {
-        let iterationInfo = `Iteration ${index + 1}:\n`;
-        iterationInfo += `Actions tried: ${JSON.stringify(iter.actions)}\n`;
-
-        // Add page content context if available
-        if (iter.textContent) {
-          // Truncate page content if too long
-          const contentPreview = iter.textContent.length > 500
-            ? iter.textContent.substring(0, 500) + '...'
-            : iter.textContent;
-          iterationInfo += `Page content: ${contentPreview}\n`;
-        }
-
-        // Add timestamp if available
-        if (iter.timestamp) {
-          iterationInfo += `Time: ${new Date(iter.timestamp).toLocaleTimeString()}\n`;
-        }
-
+      historyContext = `\nPrevious tests:\n${this.testHistory.map((iter, index) => {
+        let iterationInfo = `${index + 1}:\n`;
+        iterationInfo += `Actions tried: ${JSON.stringify(iter.actions).replace(' +', ' ')}\n`;
         return iterationInfo;
       }).join('\n')}`;
     }
@@ -97,11 +95,11 @@ class Agent {
 
     const analysisPrompt = getAnalysisPrompt(
       this.personality,
-      textContent,
-      historyContext,
+      textContent.replace(' +', ' '),
+      historyContext.replace(' +', ' '),
       true,
       true,
-      JSON.stringify(ariaSnapshot)
+      JSON.stringify(ariaSnapshot).replace(' +', ' ')
     );
 
     console.log(analysisPrompt);
@@ -131,6 +129,9 @@ class Agent {
       actions = JSON.parse(actionPlan);
       actions.forEach((action: TestAction, index: number) => {
         console.log(`   ${index + 1}. ${action.action}: ${action.description}`);
+        if (action.selector) {
+          action.selector = getSelectorFromAria(action?.rawSelector?.role, action?.rawSelector?.name);
+        }
       });
     } catch (parseError) {
       console.error('❌ Failed to parse action plan as JSON:', parseError);
@@ -152,10 +153,12 @@ class Agent {
         const actionType = action.action.replace('browser_', '');
         switch (actionType) {
           case 'click':
-            if (action.selector) await this.page.click(action.selector, { timeout: action.timeout || 5000 });
+            if (action.selector) {
+              await this.page.click(action.selector, { timeout: action.timeout || 5000 });
+            }
             break;
           case 'type':
-            if (action.selector && action.text !== undefined) await this.page.fill(action.selector, action.text);
+            if (action.selector && action.text !== undefined) await this.page.fill(action.selector, action.text, { timeout: action.timeout || 5000 });
             break;
           case 'wait':
           case 'wait_for':
@@ -304,9 +307,10 @@ class Agent {
         if (!fs.existsSync(destDir)) {
           fs.mkdirSync(destDir, { recursive: true });
         }
-        const destPath = path.join(destDir, `test-video-${Date.now()}.webm`);
-        fs.copyFileSync(videoPath, destPath);
-        console.log(`🎥 Video saved to ${destPath}`);
+        // TODO
+        // const destPath = path.join(destDir, `test-video-${Date.now()}.webm`);
+        // fs.copyFileSync(videoPath, destPath);
+        // console.log(`🎥 Video saved to ${destPath}`);
       }
     }
     // Return actions for session control

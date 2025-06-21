@@ -10,7 +10,7 @@ const app = new Elysia()
     const { url, personality } = body as any;
 
     const results: any = {};
-    if(!['hacker', 'boomer', 'geek', 'accessibility cop'].includes(personality)) {
+    if (!['hacker', 'boomer', 'geek', 'accessibility cop'].includes(personality)) {
       return { error: "Invalid personality" };
     }
     // for (const personality of personalities) {
@@ -18,7 +18,9 @@ const app = new Elysia()
     await agent.connect(url);
     let shouldContinue = true;
     let allActions: any[] = [];
-    while (shouldContinue) {
+    let iteration = 0;
+    while (shouldContinue && iteration < 5) {
+      iteration++;
       const actions = await agent.performAction();
       allActions.push(actions);
       console.log('Actions received:', actions);
