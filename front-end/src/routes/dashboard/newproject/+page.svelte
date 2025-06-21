@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import Card from '$lib/components/card.svelte';
+    import Card from '$lib/components/Card.svelte';
     import CharacterCard from "$lib/components/CharacterCard.svelte";
-    import Button from '$lib/components/button.svelte';
+    import Button from '$lib/components/Button.svelte';
 
     let currentStep = $state(1);
     let totalSteps = 6;

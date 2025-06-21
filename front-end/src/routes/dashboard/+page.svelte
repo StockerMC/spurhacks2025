@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import Button from '$lib/Components/Button.svelte';
+    import CatBox from '$lib/images/cat_box.png';
+    import Button from '$lib/components/Button.svelte';
     let mounted = $state(false);
     // TODO: ADD RATING SYSTEM RATHER THAN PROGRESS BAR + COLORS`
     // TODO: USE CARD COMPONENT INSTEAD LOLOL
@@ -8,6 +9,12 @@
     onMount(() => {
         mounted = true;
     });
+
+
+    let { data, error } = await supabase
+            .from('projects')
+            .select('*')
+
 
     const projects = [
         {
@@ -110,12 +117,12 @@
         <div class="px-6 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                        <span class="text-white font-bold text-lg">LT</span>
+                    <div class="w-12 h-12 border rounded-xl flex items-center justify-center">
+                        <img src={CatBox} alt="Cat Box Logo" class="w-8 h-8"/>
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900">Testing Dashboard</h1>
-                        <p class="text-sm text-gray-500">Manage your testing projects</p>
+                        <h1 class="text-2xl font-bold text-gray-900">Pawditor Dashboard</h1>
+                        <p class="text-sm text-gray-500">Manage your pawditor projects</p>
                     </div>
                 </div>
 
@@ -161,7 +168,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-3xl font-bold text-gray-900 mb-2">Your Projects</h2>
-                        <p class="text-gray-600">Monitor and manage your testing projects</p>
+                        <p class="text-gray-600">Monitor and manage your pawditor projects</p>
                     </div>
                     <div class="flex items-center space-x-3">
                         <Button variant="outline">

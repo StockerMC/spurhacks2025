@@ -1,9 +1,7 @@
 <script lang="ts">
     // TODO: custom URL based on project name or ID
-    import { onMount } from 'svelte';
-    import Card from '$lib/components/Card.svelte';
-    import CharacterCard from "$lib/components/CharacterCard.svelte";
-    import Button from '$lib/components/Button.svelte';
+    import Card from "$lib/components/Card.svelte";
+    import Button from "$lib/components/Button.svelte";
 
     let activeSection = $state('overview');
     let sidebarCollapsed = $state(false);
@@ -85,7 +83,7 @@
     };
 
     const generateDockerLog = (agent) => {
-        const logs = [
+        return [
             `[${new Date().toISOString()}] Starting agent container ${agent.id}`,
             `[${new Date().toISOString()}] Loading persona: ${agent.name}`,
             `[${new Date().toISOString()}] Connecting to target: https://example.com`,
@@ -96,7 +94,6 @@
             `[${new Date().toISOString()}] Network requests: 23`,
             `[${new Date().toISOString()}] Last heartbeat: ${agent.lastUpdate}`
         ];
-        return logs;
     };
 
     const updatePersonaCount = (persona: string, change: number) => {
