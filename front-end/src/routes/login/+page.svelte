@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import Logo from "$lib/images/logo.png";
     import Background from "$lib/images/background.jpg";
-    import LoadingGif from "$lib//images/loading.gif";
+    import LoadingGif from "$lib/images/loading.gif";
 
     let email = "";
     let password = "";
