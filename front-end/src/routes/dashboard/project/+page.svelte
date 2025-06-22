@@ -2,10 +2,15 @@
     // TODO: custom URL based on project name or ID
     import Card from "$lib/components/Card.svelte";
     import Button from "$lib/components/Button.svelte";
+    import { onMount } from "svelte";
+    import CatBox from "$lib/images/cat_box.png";
+    import { createClient } from "@supabase/supabase-js";
+    import { goto } from "$app/navigation";
 
     let activeSection = $state('overview');
     let sidebarCollapsed = $state(false);
     let selectedAgent = $state(null);
+    let mounted = $state(false);
 
     // Mock data for demonstration
     let projectData = $state({
@@ -113,6 +118,31 @@
         projectData.activeAgents = 0;
         projectData.status = "stopped";
     };
+
+    onMount(() => {
+        mounted = true;
+        let res = supabase
+            .from("projects")
+            .select("*");
+        res.then(data => {
+            projectsList = data.data;
+        });
+    });
+
+    const supabase = createClient(
+        "https://ttnxgveqyvtsjlwvpecl.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0bnhndmVxeXZ0c2psd3ZwZWNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1NDUwNzgsImV4cCI6MjA2NjEyMTA3OH0.EkiiotOoeCCpt5kY2_oSVVTCm_7M9IXoNWUt5O8WiwQ"
+    );
+
+    let projectsList: any = $state([]);
+
+    const createNewProject = () => {
+        goto("/dashboard/newproject");
+    };
+
+    const getProgressPercentage = (createdAt: string) => {
+        return Math.min(100, Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000));
+    };
 </script>
 
 <svelte:head>
@@ -121,28 +151,35 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 font-inter flex">
+<!-- Background Effects -->
+<div class="fixed inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-300/40 to-purple-300/30 rounded-full blur-3xl"></div>
+    <div class="absolute top-40 right-20 w-80 h-80 bg-gradient-to-br from-pink-300/35 to-blue-300/25 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-purple-300/30 to-pink-300/35 rounded-full blur-3xl"></div>
+</div>
+
+<div class="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100 font-inter flex">
     <!-- Sidebar -->
-    <aside class="bg-white border-r border-gray-200 {sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 flex flex-col">
+    <aside class="bg-white/20 backdrop-blur-md border-r border-white/40 {sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 flex flex-col relative z-10">
         <!-- Header -->
-        <div class="p-4 border-b border-gray-200">
+        <div class="p-4 border-b border-white/30">
             <div class="flex items-center justify-between">
                 {#if !sidebarCollapsed}
                     <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">LT</span>
+                        <div class="w-12 h-12 border rounded-xl flex items-center justify-center">
+                            <img src={CatBox} alt="Cat Box Logo" class="w-8 h-8"/>
                         </div>
                         <div>
                             <h1 class="font-semibold text-gray-900 text-sm">Testing Dashboard</h1>
-                            <p class="text-xs text-gray-500">Live Agent Control</p>
+                            <p class="text-xs text-gray-600">Live Agent Control</p>
                         </div>
                     </div>
                 {/if}
                 <button
-                        class="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                        class="p-1 hover:bg-white/20 rounded-md transition-colors"
                         onclick={() => sidebarCollapsed = !sidebarCollapsed}
                 >
-                    <span class="text-gray-500">{sidebarCollapsed ? '→' : '←'}</span>
+                    <span class="text-gray-600">{sidebarCollapsed ? '→' : '←'}</span>
                 </button>
             </div>
         </div>
@@ -153,14 +190,14 @@
                 {#each sidebarItems as item}
                     <li>
                         <button
-                                class="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors {activeSection === item.id ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'text-gray-700 hover:bg-gray-50'}"
+                                class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-left transition-all duration-200 {activeSection === item.id ? 'bg-white/30 text-[#6DBDD5] border border-white/40 shadow-lg' : 'text-gray-700 hover:bg-white/20'}"
                                 onclick={() => activeSection = item.id}
                         >
                             <span class="text-lg">{item.icon}</span>
                             {#if !sidebarCollapsed}
                                 <span class="font-medium text-sm flex-1">{item.label}</span>
                                 {#if item.badge}
-                                    <span class="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full font-medium">
+                                    <span class="bg-white/30 text-gray-700 text-xs px-2 py-1 rounded-full font-medium border border-white/40">
                                         {item.badge}
                                     </span>
                                 {/if}
@@ -172,7 +209,7 @@
         </nav>
 
         <!-- Footer Controls -->
-        <div class="p-4 border-t border-gray-200">
+        <div class="p-4 border-t border-white/30">
             {#if !sidebarCollapsed}
                 <div class="space-y-2">
                     <Button variant="primary" size="sm" onclick={stopAllTests}>
@@ -192,20 +229,20 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-auto">
+    <main class="flex-1 overflow-auto relative z-10">
         <!-- Top Bar -->
-        <header class="bg-white border-b border-gray-200 px-6 py-4">
+        <header class="bg-white/20 backdrop-blur-md border-b border-white/40 px-6 py-4">
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-900">{projectData.name}</h2>
                     <div class="flex items-center space-x-4 mt-1">
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {projectData.status === 'running' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border {projectData.status === 'running' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}">
                             ● {projectData.status.toUpperCase()}
                         </span>
-                        <span class="text-sm text-gray-500">Runtime: {projectData.uptime}</span>
-                        <span class="text-sm text-gray-500">{projectData.activeAgents} agents active</span>
+                        <span class="text-sm text-gray-600">Runtime: {projectData.uptime}</span>
+                        <span class="text-sm text-gray-600">{projectData.activeAgents} agents active</span>
                         {#if projectData.status === 'running'}
-                            <span class="text-sm text-gray-500">ETA: {projectData.estimatedCompletion}</span>
+                            <span class="text-sm text-gray-600">ETA: {projectData.estimatedCompletion}</span>
                         {/if}
                     </div>
                 </div>
@@ -225,7 +262,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <Card>
                         <div class="text-center">
-                            <div class="text-3xl font-bold text-blue-600 mb-2">{projectData.activeAgents}</div>
+                            <div class="text-3xl font-bold text-[#6DBDD5] mb-2">{projectData.activeAgents}</div>
                             <div class="text-sm text-gray-600">Active Agents</div>
                         </div>
                     </Card>
@@ -258,7 +295,7 @@
                                     <p class="text-gray-600">Tests will complete in approximately <strong>{projectData.estimatedCompletion}</strong></p>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-2xl font-bold text-blue-600">{projectData.estimatedCompletion}</div>
+                                    <div class="text-2xl font-bold text-[#6DBDD5]">{projectData.estimatedCompletion}</div>
                                     <div class="text-sm text-gray-500">remaining</div>
                                 </div>
                             </div>
@@ -271,13 +308,13 @@
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">🚨 Critical Issues</h3>
                         <div class="space-y-3">
                             {#each criticalIssues.slice(0, 3) as issue}
-                                <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-start space-x-3 p-3 bg-white/30 rounded-xl border border-white/40">
                                     <span class="px-2 py-1 rounded-full text-xs font-medium {getSeverityColor(issue.severity)}">
                                         {issue.severity.toUpperCase()}
                                     </span>
                                     <div class="flex-1">
                                         <p class="text-sm font-medium text-gray-900">{issue.title}</p>
-                                        <p class="text-xs text-gray-500">Found by {issue.agent} on {issue.page}</p>
+                                        <p class="text-xs text-gray-600">Found by {issue.agent} on {issue.page}</p>
                                     </div>
                                 </div>
                             {/each}
@@ -289,12 +326,12 @@
                         <div class="space-y-3">
                             {#each agentInstances.slice(0, 4) as agent}
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                                     <div class="flex-1">
                                         <p class="text-sm font-medium text-gray-900">{agent.name} #{agent.hash}</p>
-                                        <p class="text-xs text-gray-500">{agent.action}</p>
+                                        <p class="text-xs text-gray-600">{agent.action}</p>
                                     </div>
-                                    <span class="text-xs text-gray-400">{agent.lastUpdate}</span>
+                                    <span class="text-xs text-gray-500">{agent.lastUpdate}</span>
                                 </div>
                             {/each}
                         </div>
@@ -311,12 +348,12 @@
                             <div class="flex items-center space-x-3">
                                 <Button variant="outline" size="sm" onclick={() => selectedAgent = null}>← Back</Button>
                                 <h3 class="text-xl font-semibold text-gray-900">🐳 Container: {selectedAgent.name} #{selectedAgent.hash}</h3>
-                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">{selectedAgent.status}</span>
+                                <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full border border-green-200">{selectedAgent.status}</span>
                             </div>
                             <Button variant="outline" size="sm">🛑 Stop Container</Button>
                         </div>
 
-                        <div class="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                        <div class="bg-black text-green-400 p-4 rounded-xl font-mono text-sm overflow-x-auto border border-gray-600">
                             <div class="mb-2 text-gray-400">Docker Container Logs - {selectedAgent.id}</div>
                             {#each generateDockerLog(selectedAgent) as log}
                                 <div class="mb-1">{log}</div>
@@ -327,15 +364,15 @@
                         <div class="mt-4 grid grid-cols-3 gap-4">
                             <div class="text-center">
                                 <div class="text-lg font-semibold text-gray-900">45MB</div>
-                                <div class="text-sm text-gray-500">Memory Usage</div>
+                                <div class="text-sm text-gray-600">Memory Usage</div>
                             </div>
                             <div class="text-center">
                                 <div class="text-lg font-semibold text-gray-900">12%</div>
-                                <div class="text-sm text-gray-500">CPU Usage</div>
+                                <div class="text-sm text-gray-600">CPU Usage</div>
                             </div>
                             <div class="text-center">
                                 <div class="text-lg font-semibold text-gray-900">23</div>
-                                <div class="text-sm text-gray-500">Network Requests</div>
+                                <div class="text-sm text-gray-600">Network Requests</div>
                             </div>
                         </div>
                     </Card>
@@ -350,17 +387,17 @@
                         <div class="space-y-4">
                             {#each agentInstances as agent}
                                 <button
-                                        class="w-full border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors text-left"
+                                        class="w-full border border-white/40 rounded-xl p-4 hover:bg-white/20 transition-all duration-200 text-left backdrop-blur-sm"
                                         onclick={() => selectedAgent = agent}
                                 >
                                     <div class="flex items-center justify-between mb-2">
                                         <div class="flex items-center space-x-3">
                                             <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                                             <span class="font-semibold text-gray-900">{agent.name} #{agent.hash}</span>
-                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">{agent.status}</span>
+                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200">{agent.status}</span>
                                         </div>
                                         <div class="flex items-center space-x-2">
-                                            <span class="text-sm text-gray-500">{agent.lastUpdate}</span>
+                                            <span class="text-sm text-gray-600">{agent.lastUpdate}</span>
                                             <span class="text-gray-400">→</span>
                                         </div>
                                     </div>
@@ -386,7 +423,7 @@
 
                         <div class="space-y-4">
                             {#each criticalIssues as issue}
-                                <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="border border-white/40 rounded-xl p-4 bg-white/10 backdrop-blur-sm">
                                     <div class="flex items-start justify-between mb-3">
                                         <div class="flex items-center space-x-3">
                                             <span class="px-3 py-1 rounded-full text-xs font-medium {getSeverityColor(issue.severity)}">
@@ -397,7 +434,7 @@
                                         <Button variant="outline" size="sm">Fix</Button>
                                     </div>
                                     <div class="text-sm text-gray-600">
-                                        <p>Discovered by <strong>{issue.agent}</strong> on page <code class="bg-gray-100 px-1 rounded">{issue.page}</code></p>
+                                        <p>Discovered by <strong>{issue.agent}</strong> on page <code class="bg-white/30 px-2 py-1 rounded border border-white/40">{issue.page}</code></p>
                                     </div>
                                 </div>
                             {/each}
@@ -416,15 +453,15 @@
 
                     <div class="space-y-3">
                         {#each feedbackItems as item}
-                            <div class="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg {item.completed ? 'bg-gray-50' : 'bg-white'}">
+                            <div class="flex items-center space-x-4 p-4 border border-white/40 rounded-xl {item.completed ? 'bg-white/10' : 'bg-white/20'} backdrop-blur-sm">
                                 <input
                                         type="checkbox"
                                         bind:checked={item.completed}
-                                        class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                        class="w-4 h-4 text-[#6DBDD5] rounded focus:ring-[#6DBDD5]"
                                 />
                                 <div class="flex-1">
-                                    <h4 class="font-medium text-gray-900 {item.completed ? 'line-through text-gray-500' : ''}">{item.title}</h4>
-                                    <p class="text-sm text-gray-500">Assigned to: {item.assignee}</p>
+                                    <h4 class="font-medium text-gray-900 {item.completed ? 'line-through text-gray-600' : ''}">{item.title}</h4>
+                                    <p class="text-sm text-gray-600">Assigned to: {item.assignee}</p>
                                 </div>
                                 <span class="px-2 py-1 rounded-full text-xs font-medium {getPriorityColor(item.priority)}">
                                     {item.priority.toUpperCase()}
@@ -455,7 +492,7 @@
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-600">Avg Response Time</span>
-                                <span class="font-semibold text-blue-600">1.2s</span>
+                                <span class="font-semibold text-[#6DBDD5]">1.2s</span>
                             </div>
                         </div>
                     </Card>
@@ -466,28 +503,28 @@
                             <div class="flex items-center justify-between">
                                 <span class="text-sm text-gray-600">The Hacker (2 instances)</span>
                                 <div class="flex items-center space-x-2">
-                                    <div class="w-20 bg-gray-200 rounded-full h-2">
+                                    <div class="w-20 bg-white/30 rounded-full h-2 border border-white/40">
                                         <div class="bg-red-500 h-2 rounded-full" style="width: 85%"></div>
                                     </div>
-                                    <span class="text-xs text-gray-500">85%</span>
+                                    <span class="text-xs text-gray-600">85%</span>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-sm text-gray-600">Mobile Sarah (2 instances)</span>
                                 <div class="flex items-center space-x-2">
-                                    <div class="w-20 bg-gray-200 rounded-full h-2">
+                                    <div class="w-20 bg-white/30 rounded-full h-2 border border-white/40">
                                         <div class="bg-green-500 h-2 rounded-full" style="width: 92%"></div>
                                     </div>
-                                    <span class="text-xs text-gray-500">92%</span>
+                                    <span class="text-xs text-gray-600">92%</span>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-sm text-gray-600">Power User (3 instances)</span>
                                 <div class="flex items-center space-x-2">
-                                    <div class="w-20 bg-gray-200 rounded-full h-2">
-                                        <div class="bg-blue-500 h-2 rounded-full" style="width: 88%"></div>
+                                    <div class="w-20 bg-white/30 rounded-full h-2 border border-white/40">
+                                        <div class="bg-[#6DBDD5] h-2 rounded-full" style="width: 88%"></div>
                                     </div>
-                                    <span class="text-xs text-gray-500">88%</span>
+                                    <span class="text-xs text-gray-600">88%</span>
                                 </div>
                             </div>
                         </div>
@@ -502,7 +539,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {#each Object.entries(personaConfig) as [persona, config]}
-                            <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="border border-white/40 rounded-xl p-4 bg-white/10 backdrop-blur-sm">
                                 <div class="flex items-center justify-between mb-4">
                                     <div class="flex items-center space-x-2">
                                         <span class="text-2xl">
@@ -514,7 +551,7 @@
                                         </span>
                                         <h4 class="font-semibold text-gray-900">{persona}</h4>
                                     </div>
-                                    <span class="px-2 py-1 rounded-full text-xs font-medium {config.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium border {config.active ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}">
                                         {config.active ? 'ACTIVE' : 'INACTIVE'}
                                     </span>
                                 </div>
@@ -539,7 +576,7 @@
                         {/each}
                     </div>
 
-                    <div class="mt-8 pt-6 border-t border-gray-200">
+                    <div class="mt-8 pt-6 border-t border-white/30">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h4 class="font-semibold text-gray-900">Total Active Agents: {projectData.activeAgents}</h4>
