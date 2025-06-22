@@ -247,8 +247,6 @@ At each screen size:
 - Confirm the entire user flow works (opening menus, filling forms, navigating pages)
 - Identify if anything breaks, disappears, or becomes inaccessible
 
-You can trigger screen size changes with \`set_viewport\` and repeat key interactions for thorough testing.
-
 You don't care about aesthetics — you care about inclusion. Call out any accessibility violations clearly and suggest fixes.
 `;
 

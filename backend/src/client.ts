@@ -53,9 +53,11 @@ class Agent {
   private page: Page | null = null;
   public testHistory: TestIterationResult[] = [];
   private personality: Personality;
+  private projectId: string;
 
-  constructor(personality: Personality) {
+  constructor(personality: Personality, projectId: string) {
     this.personality = personality;
+    this.projectId = projectId;
   }
 
   async connect(url: string) {
@@ -115,14 +117,14 @@ class Agent {
     );
 
     // Use the countTokens API to estimate token usage for the prompt and screenshot
-    const promptTokenCount = await model.countTokens({
-      model: 'gemini-2.0-flash',
-      contents: [
-        { role: 'user', parts: [{ text: analysisPrompt }] },
-        { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] }
-      ]
-    });
-    console.log(`🔢 Estimated tokens for prompt + screenshot:`, promptTokenCount.totalTokens);
+    // const promptTokenCount = await model.countTokens({
+    //   model: 'gemini-2.0-flash',
+    //   contents: [
+    //     { role: 'user', parts: [{ text: analysisPrompt }] },
+    //     { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] }
+    //   ]
+    // });
+    // console.log(`🔢 Estimated tokens for prompt + screenshot:`, promptTokenCount.totalTokens);
     // // // Write the analysis prompt to a file for debugging
     // // fs.writeFileSync('src/screenshots/analysisPrompt.txt', analysisPrompt);
     // console.log(analysisPrompt.length);
@@ -150,7 +152,7 @@ class Agent {
     }
 
     // Parse and log the action plan
-    let actions: TestAction[];
+    let actions: TestAction[] = [];
     try {
       actions = JSON.parse(actionPlan);
       actions.forEach((action: TestAction, index: number) => {
@@ -162,7 +164,7 @@ class Agent {
     } catch (parseError) {
       console.error('❌ Failed to parse action plan as JSON:', parseError);
       console.log('Raw response:', actionPlan);
-      throw new Error('Failed to parse AI response as JSON');
+      // throw new Error('Failed to parse AI response as JSON');
     }
 
     // Execute each action in the plan SEQUENTIALLY (await each action)
@@ -287,13 +289,13 @@ class Agent {
             afterText
           );
           // Use the countTokens API to estimate token usage for the prompt and screenshot
-          const promptTokenCount = await model.countTokens({
-            model: 'gemini-2.0-flash',
-            contents: [
-              { role: 'user', parts: [{ text: evalPrompt }] },
-            ]
-          });
-          console.log(`🔢 Estimated tokens for eval prompt:`, promptTokenCount.totalTokens);
+          // const promptTokenCount = await model.countTokens({
+          //   model: 'gemini-2.0-flash',
+          //   contents: [
+          //     { role: 'user', parts: [{ text: evalPrompt }] },
+          //   ]
+          // });
+          // console.log(`🔢 Estimated tokens for eval prompt:`, promptTokenCount.totalTokens);
 
           const evalResponse = await model.generateContent({
             model: 'gemini-2.0-flash',

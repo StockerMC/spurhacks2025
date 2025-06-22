@@ -4,6 +4,21 @@ import {Database} from "./database.types";
 type Project = Database['public']['Tables']['projects']['Insert'];
 type Action = Database['public']['Tables']['actions']['Insert'];
 
+const SUPABASE_PROJECT_ID = process.env.SUPABASE_PROJECT_ID || '';
+
+export const createProject = async (project: Project) => {
+  const { data, error } = await supabase
+    .from('projects')
+    .insert(project)
+    .select()
+    .single();
+  if (error) {
+    console.error('Error creating project:', error);
+    return null;
+  }
+  return data;
+};
+
 export const createAction = async (action: Action) => {
   const { data, error } = await supabase
     .from('actions')
@@ -19,3 +34,50 @@ export const createAction = async (action: Action) => {
   return data;
 };
 
+/**
+ * Upload a photo to the project's media bucket.
+ * @param projectId Project ID or slug
+ * @param file File buffer or Blob
+ * @param filename Name for the file (e.g., 'screenshot.png')
+ * @returns Public URL or null
+ */
+export const uploadProjectPhoto = async (
+  file: File | Blob | Buffer,
+  filename: string,
+  personality: string
+) => {
+  const path = `${SUPABASE_PROJECT_ID}/photos/${filename}`;
+  const { data, error } = await supabase.storage
+    .from('project-media')
+    .upload(path, file, { upsert: true, contentType: 'image/png' });
+  if (error) {
+    console.error('Error uploading photo:', error);
+    return null;
+  }
+  const URL = supabase.storage.from('project-media').getPublicUrl(path).data.publicUrl;
+//   const { data: updateData, error: updateError } = await supabase
+//     .from('media')
+
+};
+
+/**
+ * Upload a video to the project's media bucket.
+ * @param projectId Project ID or slug
+ * @param file File buffer or Blob
+ * @param filename Name for the file (e.g., 'test-video.webm')
+ * @returns Public URL or null
+ */
+export const uploadProjectVideo = async (
+  file: File | Blob | Buffer,
+  filename: string
+) => {
+  const path = `${SUPABASE_PROJECT_ID}/videos/${filename}`;
+  const { data, error } = await supabase.storage
+    .from('project-media')
+    .upload(path, file, { upsert: true, contentType: 'video/webm' });
+  if (error) {
+    console.error('Error uploading video:', error);
+    return null;
+  }
+  return supabase.storage.from('project-media').getPublicUrl(path).data.publicUrl;
+};

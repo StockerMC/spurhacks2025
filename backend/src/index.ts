@@ -7,14 +7,14 @@ const app = new Elysia()
   .post("/test", async ({ body }) => {
     console.log('Received body:', body);
     // Parse body as any to avoid TS errors
-    const { url, personality } = body as any;
+    const { url, personality, projectId } = body as any;
 
     const results: any = {};
     if (!['hacker', 'boomer', 'geek', 'accessibility cop'].includes(personality)) {
       return { error: "Invalid personality" };
     }
     // for (const personality of personalities) {
-    const agent = new Agent(personality as Personality);
+    const agent = new Agent(personality as Personality, projectId);
     await agent.connect(url);
     let shouldContinue = true;
     let allActions: any[] = [];
@@ -37,15 +37,15 @@ const app = new Elysia()
       finalTestHistory?.textContent || '',
       finalTestHistory?.snapshot || '',
     )
-    // Use the model's countTokens API to get token count
-    const { totalTokens } = await model.countTokens({
-      model: 'gemini-2.0-flash',
-      contents: [
-        { role: 'user', parts: [{ text: evaluationPrompt }] },
-        { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: finalTestHistory.screenshot } }] }
-      ]
-    });
-    console.log('Evaluation Prompt Token Count:', totalTokens);
+    // // Use the model's countTokens API to get token count
+    // const { totalTokens } = await model.countTokens({
+    //   model: 'gemini-2.0-flash',
+    //   contents: [
+    //     { role: 'user', parts: [{ text: evaluationPrompt }] },
+    //     { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: finalTestHistory.screenshot } }] }
+    //   ]
+    // });
+    // console.log('Evaluation Prompt Token Count:', totalTokens);
     const response = await model.generateContent({
       model: 'gemini-2.0-flash',
       config: llmConfig,
@@ -54,8 +54,20 @@ const app = new Elysia()
         { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: finalTestHistory.screenshot } }] }
       ]
     });
-    let finalEvaluation = response.text;
-    console.log('Session Evaluation:', finalEvaluation);
+    let finalEvaluation = response.text || '';
+    // Try to parse JSON from the finalEvaluation string
+    let parsedEvaluation;
+    try {
+      const match = finalEvaluation.match(/```json\s*([\s\S]*?)\s*```/);
+      if (match) {
+      parsedEvaluation = JSON.parse(match[1]);
+      console.log('Parsed Session Evaluation:', parsedEvaluation);
+      } else {
+      console.log('No JSON block found in evaluation.');
+      }
+    } catch (e) {
+      console.log('Failed to parse JSON from evaluation:', e);
+    }
     return { success: true, actions: allActions };
     // return { url,  };
   })
