@@ -74,11 +74,11 @@ const app = new Elysia()
     const personalities = ['hacker', 'boomer', 'geek', 'accessibility cop']
     console.log('Connecting to browser...');
     const browser = await chromium.launch({ headless: true });
-    const agentPromises = personalities.map(personality => {
+    const agentPromises = personalities.map(async (personality) => {
       console.log(`Running agent for personality: ${personality}`);
-      return runAgent(browser, url, personality as Personality, projectId, notes);
+      return await runAgent(browser, url, personality as Personality, projectId, notes);
     });
-    await Promise.allSettled(agentPromises);
+    await Promise.all(agentPromises);
     await browser.close();
     return { success: true, message: "Test finished" };
   })
