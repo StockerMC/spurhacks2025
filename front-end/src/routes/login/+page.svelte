@@ -28,24 +28,24 @@
                     alt="Cat Logo"
                     class="w-12 h-auto"
             />
-            <span class="text-2xl font-bold text-gray-800">Pawditor</span>
+            <span class="text-2xl font-bold text-amber-50">Pawditor</span>
         </div>
         <nav class="hidden md:flex text-xl items-center gap-16">
-            <a href="/" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+            <a href="/" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
                 Home
             </a>
-            <a href="/about" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+            <a href="/about" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
                 About
             </a>
-            <a href="/pricing" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+            <a href="/pricing" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
                 Pricing
             </a>
         </nav>
         <div class="flex items-center text-xl gap-8">
-            <button class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+            <button class="text-amber-50 over:text-amber-200 font-medium transition-colors">
                 Log In
             </button>
-            <button class="border-2 py-2 border-gray-700 text-gray-700 rounded-full px-6">
+            <button class="border-2 py-2 border-amber-50 text-amber-50 over:text-amber-200 rounded-full px-6">
                 Sign Up
             </button>
         </div>
