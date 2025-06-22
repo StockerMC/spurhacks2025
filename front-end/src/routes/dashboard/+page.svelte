@@ -18,7 +18,7 @@
             .from("projects")
             .select("*");
         res.then(data => {
-            projectsList = data.data;
+            projectsList = data.data.reverse();
         });
     });
 
