@@ -52,7 +52,7 @@
 
 <div class="absolute top-0 left-0 w-full min-h-screen font-inter">
   <!-- Header -->
-  <header class="border-b border-gray-200 sticky top-0 z-50">
+  <header class="border-b border-gray-200 sticky top-0 z-50 bg-white">
     <div class="px-6 py-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
