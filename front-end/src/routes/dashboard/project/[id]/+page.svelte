@@ -14,6 +14,7 @@
     import PersonaControl from './persona/+page.svelte';
 
     let projectId = page.params.id;
+    console.log(projectId);
 
     let activeSection = $state('overview');
     let sidebarCollapsed = $state(false);
@@ -57,6 +58,7 @@
                     body: JSON.stringify({ projectId, url: projectData.url, notes: projectData.notes })
                 });
                 console.log(`Response from test start: ${await response.text()}`);
+                clearInterval(timeInterval);
             } catch (error) {
                 console.error(`Error starting test with ${personality} personality:`, error);
             }

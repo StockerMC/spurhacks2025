@@ -188,7 +188,7 @@
                     {
                         name: projectName,
                         url: websiteUrl,
-                        additionalNotes
+                        notes: additionalNotes
                     },
                 ])
                 .select();
@@ -762,8 +762,8 @@
                                     </h4>
                                     <p class="text-green-800 text-sm">
                                         Based on your selections, testing should
-                                        complete in approximately <strong
-                                            >2-4 hours</strong
+                                        complete in <strong
+                                            >a few minutes</strong
                                         >. You'll receive real-time updates as
                                         our agents work through your website.
                                     </p>
