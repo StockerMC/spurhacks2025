@@ -3,12 +3,7 @@
   "version": "1.0.50",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "server": "bun run src/index.ts",
-    "client": "bun run src/client.ts",
-    "test": "bun run src/test-client.ts",
-    "test:connection": "bun run src/test-client.ts connection",
-    "test:all": "bun run src/test-client.ts all",
-    "test:single": "bun run src/test-client.ts single"
+    "server": "bun run src/index.ts"
   },
   "dependencies": {
     "@elysiajs/websocket": "^0.2.8",

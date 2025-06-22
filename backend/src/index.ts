@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { Agent, llmConfig, model } from "./client";
 import { getSessionEvaluationPrompt, Personality } from "../lib/prompts";
 
-async function runAgent(url: string, personality: Personality, projectId: string) {
+async function runAgent(url: string, personality: Personality, projectId: number) {
     const agent = new Agent(personality, projectId);
     await agent.connect(url);
     let shouldContinue = true;
@@ -50,8 +50,10 @@ async function runAgent(url: string, personality: Personality, projectId: string
 
 const app = new Elysia()
   .get("/", () => "Hello Elysia")
-  .post("/test", async ({ body: { url, personality, projectId } }: { body: { url: string, personality: string, projectId: string } }) => {
-
+  .post("/test", async ({ body: { url, personality, projectId } }: { body: { url: string, personality: string, projectId: number } }) => {
+    if (!url || !personality || !projectId) {
+      return { error: "Missing required fields: url, personality, or projectId" };
+    }
     if (!['hacker', 'boomer', 'geek', 'accessibility cop'].includes(personality)) {
       return { error: "Invalid personality" };
     }

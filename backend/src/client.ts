@@ -53,9 +53,9 @@ class Agent {
   private page: Page | null = null;
   public testHistory: TestIterationResult[] = [];
   private personality: Personality;
-  private projectId: string;
+  private projectId: number;
 
-  constructor(personality: Personality, projectId: string) {
+  constructor(personality: Personality, projectId: number) {
     this.personality = personality;
     this.projectId = projectId;
   }
@@ -342,7 +342,7 @@ class Agent {
               finalSummary: evaluation?.explanation || 'No explanation provided',
               finalIssues: evaluation?.issues || [],
               finalRecommendations: evaluation?.recommendations || [],
-              project_id: null // Set this if you have a project ID context
+              project_id: this.projectId // Set this if you have a project ID context
             };
             
             const savedAction = await createAction(actionData);
