@@ -1,5 +1,4 @@
 <script lang="ts">
-    // TODO: custom URL based on project name or ID
     import Card from "$lib/components/Card.svelte";
     import Button from "$lib/components/Button.svelte";
     import { onMount } from "svelte";
@@ -12,12 +11,13 @@
     let projectId = page.params.id;
     console.log(projectId);
 
-
     let activeSection = $state('overview');
     let sidebarCollapsed = $state(false);
     let selectedAgent = $state(null);
     let mounted = $state(false);
-
+    let testingStarted = $state(false);
+    let startTime = $state(null);
+    let elapsedTime = $state('0m 0s');
 
 
     // Project data from Supabase
@@ -66,19 +66,15 @@
 
     // Persona configurations
     let personaConfig = $state({
-        "The Hacker": { count: 2, active: true },
-        "Mobile Sarah": { count: 2, active: true },
-        "Grandpa Joe": { count: 1, active: true },
-        "Power User": { count: 3, active: true },
+        "The Hacker": { count: 0, active: false },
+        "Mobile Sarah": { count: 0, active: false },
+        "Grandpa Joe": { count: 0, active: false },
+        "Power User": { count: 0, active: false },
         "Skeptical Sam": { count: 0, active: false },
         "Accessibility Ana": { count: 0, active: false }
     });
 
-    let criticalIssues = $state([
-        { severity: "critical", title: "SQL Injection vulnerability found", agent: "The Hacker #a7f3d9e2", page: "/login" },
-        { severity: "high", title: "Mobile checkout flow broken", agent: "Mobile Sarah #c9d1a5b7", page: "/checkout" },
-        { severity: "medium", title: "Navigation confusing for seniors", agent: "Grandpa Joe #e8b3f6c2", page: "/dashboard" }
-    ]);
+    let criticalIssues = $state([]);
 
     let feedbackItems = $state([
         { id: 1, title: "Review login form accessibility", priority: "high", completed: false, assignee: "Dev Team" },
@@ -89,8 +85,8 @@
 
     const sidebarItems = [
         { id: 'overview', label: 'Project Overview', icon: '📊', badge: null },
-        { id: 'agents', label: 'Agent Intelligence', icon: '🧠', badge: projectData.activeAgents },
-        { id: 'issues', label: 'Issues + Insights', icon: '🚨', badge: projectData.issuesFound },
+        { id: 'agents', label: 'Agent Intelligence', icon: '🧠', badge: null },
+        { id: 'issues', label: 'Issues + Insights', icon: '🚨', badge: null },
         { id: 'feedback', label: 'Feedback & Tasks', icon: '💬', badge: feedbackItems.filter(f => !f.completed).length },
         { id: 'metrics', label: 'Metrics', icon: '📈', badge: null },
         { id: 'settings', label: 'Persona Control', icon: '🧬', badge: null },
@@ -134,19 +130,57 @@
         const newCount = Math.max(0, personaConfig[persona].count + change);
         personaConfig[persona].count = newCount;
         personaConfig[persona].active = newCount > 0;
+    };
 
-        // Update total active agents
-        projectData.activeAgents = Object.values(personaConfig).reduce((sum, config) => sum + config.count, 0);
+    const startTesting = () => {
+        testingStarted = true;
+        startTime = Date.now();
+        projectData.status = "running";
+
+        // Start some default agents
+        personaConfig["The Hacker"].count = 2;
+        personaConfig["The Hacker"].active = true;
+        personaConfig["Mobile Sarah"].count = 2;
+        personaConfig["Mobile Sarah"].active = true;
+        personaConfig["Power User"].count = 1;
+        personaConfig["Power User"].active = true;
     };
 
     const stopAllTests = () => {
+        testingStarted = false;
+        startTime = null;
+        elapsedTime = '0m 0s';
+        projectData.status = "ready";
+
         Object.keys(personaConfig).forEach(persona => {
             personaConfig[persona].count = 0;
             personaConfig[persona].active = false;
         });
-        projectData.activeAgents = 0;
-        projectData.status = "stopped";
     };
+
+    // Update elapsed time
+    let timeInterval;
+    $effect(() => {
+        if (testingStarted && startTime) {
+            timeInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                elapsedTime = `${minutes}m ${seconds}s`;
+                projectData.uptime = elapsedTime;
+            }, 1000);
+        } else {
+            if (timeInterval) {
+                clearInterval(timeInterval);
+            }
+        }
+
+        return () => {
+            if (timeInterval) {
+                clearInterval(timeInterval);
+            }
+        };
+    });
 
     onMount(() => {
         mounted = true;
@@ -222,7 +256,7 @@
                 {#if !sidebarCollapsed}
                     <div class="flex items-center space-x-3">
                         <div class="w-12 h-12 border rounded-xl flex items-center justify-center">
-                            <img src={CatBox} alt="Cat Box Logo" class="w-8 h-8"/>
+                            <img src={CatBox || "/placeholder.svg"} alt="Cat Box Logo" class="w-8 h-8"/>
                         </div>
                         <div>
                             <h1 class="font-semibold text-gray-900 text-sm">Testing Dashboard</h1>
@@ -268,16 +302,16 @@
             {#if !sidebarCollapsed}
                 <div class="space-y-2">
                     <Button variant="primary" size="sm" onclick={stopAllTests}>
-                        🛑 Stop All Tests
+                        Stop All Tests
                     </Button>
                     <Button variant="outline" size="sm">
-                        ⚙️ Settings
+                        Settings
                     </Button>
                 </div>
             {:else}
                 <div class="space-y-2">
-                    <Button variant="primary" size="sm" onclick={stopAllTests}>🛑</Button>
-                    <Button variant="outline" size="sm">⚙️</Button>
+                    <Button variant="primary" size="sm" onclick={stopAllTests}>Stop</Button>
+                    <Button variant="outline" size="sm">Set</Button>
                 </div>
             {/if}
         </div>
@@ -291,20 +325,18 @@
                 <div>
                     <h2 class="text-2xl font-bold text-gray-900">{projectData.name}</h2>
                     <div class="flex items-center space-x-4 mt-1">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border {projectData.status === 'running' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}">
-                            ● {projectData.status.toUpperCase()}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border {projectData.status === 'running' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}">
+                            {projectData.status.toUpperCase()}
                         </span>
-                        <span class="text-sm text-gray-600">Runtime: {projectData.uptime}</span>
-                        <span class="text-sm text-gray-600">{projectData.activeAgents} agents active</span>
-                        {#if projectData.status === 'running'}
-                            <span class="text-sm text-gray-600">ETA: {projectData.estimatedCompletion}</span>
+                        {#if testingStarted}
+                            <span class="text-sm text-gray-600">Elapsed: {elapsedTime}</span>
                         {/if}
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <Button variant="outline" size="sm">📊 Analytics</Button>
-                    <Button variant="outline" size="sm">🔄 Refresh</Button>
-                    <Button variant="primary" size="sm" onclick={() => activeSection = 'settings'}>+ Manage Agents</Button>
+                    <Button variant="outline" size="sm">Analytics</Button>
+                    <Button variant="outline" size="sm">Refresh</Button>
+                    <Button variant="primary" size="sm" onclick={() => activeSection = 'settings'}>Manage Agents</Button>
                 </div>
             </div>
         </header>
@@ -314,81 +346,70 @@
 
             <!-- Project Overview -->
             {#if activeSection === 'overview'}
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Testing Status Card - Full Width -->
+                <div class="mb-6">
                     <Card>
-                        <div class="text-center">
-                            <div class="text-3xl font-bold text-[#6DBDD5] mb-2">{projectData.activeAgents}</div>
-                            <div class="text-sm text-gray-600">Active Agents</div>
-                        </div>
-                    </Card>
-                    <Card>
-                        <div class="text-center">
-                            <div class="text-3xl font-bold text-green-600 mb-2">{projectData.totalTests.toLocaleString()}</div>
-                            <div class="text-sm text-gray-600">Tests Completed</div>
-                        </div>
-                    </Card>
-                    <Card>
-                        <div class="text-center">
-                            <div class="text-3xl font-bold text-red-600 mb-2">{projectData.issuesFound}</div>
-                            <div class="text-sm text-gray-600">Issues Found</div>
-                        </div>
-                    </Card>
-                    <Card>
-                        <div class="text-center">
-                            <div class="text-3xl font-bold text-purple-600 mb-2">94%</div>
-                            <div class="text-sm text-gray-600">Success Rate</div>
+                        <div class="text-center p-4">
+                            {#if !testingStarted}
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">START TESTING</h3>
+                                <p class="text-gray-600 mb-6">Begin automated testing with AI agents</p>
+                                <Button variant="primary" onclick={startTesting}>
+                                    Start Testing
+                                </Button>
+                            {:else}
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">TESTING IN PROGRESS</h3>
+                                <div class="text-3xl font-bold text-[#6DBDD5] mb-2">{elapsedTime}</div>
+                                <div class="text-sm text-gray-500 mb-4">elapsed</div>
+                                <Button variant="primary" onclick={stopAllTests}>
+                                    Stop Testing
+                                </Button>
+                            {/if}
                         </div>
                     </Card>
                 </div>
 
-                {#if projectData.status === 'running'}
-                    <div class="mb-6">
-                        <Card>
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-900">⏱️ Estimated Completion</h3>
-                                    <p class="text-gray-600">Tests will complete in approximately <strong>{projectData.estimatedCompletion}</strong></p>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-2xl font-bold text-[#6DBDD5]">{projectData.estimatedCompletion}</div>
-                                    <div class="text-sm text-gray-500">remaining</div>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-                {/if}
-
+                <!-- Critical Issues and Agent Activity - Side by Side -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Critical Issues Card -->
                     <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">🚨 Critical Issues</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Critical Issues</h3>
                         <div class="space-y-3">
-                            {#each criticalIssues.slice(0, 3) as issue}
-                                <div class="flex items-start space-x-3 p-3 bg-white/30 rounded-xl border border-white/40">
-                                    <span class="px-2 py-1 rounded-full text-xs font-medium {getSeverityColor(issue.severity)}">
-                                        {issue.severity.toUpperCase()}
-                                    </span>
-                                    <div class="flex-1">
-                                        <p class="text-sm font-medium text-gray-900">{issue.title}</p>
-                                        <p class="text-xs text-gray-600">Found by {issue.agent} on {issue.page}</p>
+                            {#if criticalIssues.length === 0}
+                                <p class="text-gray-500 text-center py-4">No critical issues found yet</p>
+                            {:else}
+                                {#each criticalIssues.slice(0, 3) as issue}
+                                    <div class="flex items-start space-x-3 p-3 bg-white/30 rounded-xl border border-white/40">
+                                        <span class="px-2 py-1 rounded-full text-xs font-medium {getSeverityColor(issue.severity)}">
+                                            {issue.severity.toUpperCase()}
+                                        </span>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-gray-900">{issue.title}</p>
+                                            <p class="text-xs text-gray-600">Found by {issue.agent} on {issue.page}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            {/each}
+                                {/each}
+                            {/if}
                         </div>
                     </Card>
 
+                    <!-- Agent Activity Card -->
                     <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">🧠 Agent Activity</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Agent Activity</h3>
                         <div class="space-y-3">
-                            {#each agentInstances.slice(0, 4) as agent}
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                    <div class="flex-1">
-                                        <p class="text-sm font-medium text-gray-900">{agent.name} #{agent.hash}</p>
-                                        <p class="text-xs text-gray-600">{agent.action}</p>
+                            {#if testingStarted}
+                                {#each agentInstances.slice(0, 4) as agent}
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-gray-900">{agent.name} #{agent.hash}</p>
+                                            <p class="text-xs text-gray-600">{agent.action}</p>
+                                        </div>
+                                        <span class="text-xs text-gray-500">{agent.lastUpdate}</span>
                                     </div>
-                                    <span class="text-xs text-gray-500">{agent.lastUpdate}</span>
-                                </div>
-                            {/each}
+                                {/each}
+                            {:else}
+                                <p class="text-gray-500 text-center py-4">No active agents</p>
+                            {/if}
                         </div>
                     </Card>
                 </div>
@@ -402,10 +423,10 @@
                         <div class="flex items-center justify-between mb-6">
                             <div class="flex items-center space-x-3">
                                 <Button variant="outline" size="sm" onclick={() => selectedAgent = null}>← Back</Button>
-                                <h3 class="text-xl font-semibold text-gray-900">🐳 Container: {selectedAgent.name} #{selectedAgent.hash}</h3>
+                                <h3 class="text-xl font-semibold text-gray-900">Container: {selectedAgent.name} #{selectedAgent.hash}</h3>
                                 <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full border border-green-200">{selectedAgent.status}</span>
                             </div>
-                            <Button variant="outline" size="sm">🛑 Stop Container</Button>
+                            <Button variant="outline" size="sm">Stop Container</Button>
                         </div>
 
                         <div class="bg-black text-green-400 p-4 rounded-xl font-mono text-sm overflow-x-auto border border-gray-600">
@@ -435,8 +456,8 @@
                     <!-- Agent List View -->
                     <Card>
                         <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-xl font-semibold text-gray-900">🧠 Live Agent Intelligence Feed</h3>
-                            <Button variant="outline" size="sm">🔄 Auto-refresh: ON</Button>
+                            <h3 class="text-xl font-semibold text-gray-900">Live Agent Intelligence Feed</h3>
+                            <Button variant="outline" size="sm">Auto-refresh: ON</Button>
                         </div>
 
                         <div class="space-y-4">
@@ -469,7 +490,7 @@
                 <div class="space-y-6">
                     <Card>
                         <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-xl font-semibold text-gray-900">🚨 Issues + Insights</h3>
+                            <h3 class="text-xl font-semibold text-gray-900">Issues + Insights</h3>
                             <div class="flex space-x-2">
                                 <Button variant="outline" size="sm">Filter</Button>
                                 <Button variant="outline" size="sm">Export</Button>
@@ -477,22 +498,28 @@
                         </div>
 
                         <div class="space-y-4">
-                            {#each criticalIssues as issue}
-                                <div class="border border-white/40 rounded-xl p-4 bg-white/10 backdrop-blur-sm">
-                                    <div class="flex items-start justify-between mb-3">
-                                        <div class="flex items-center space-x-3">
-                                            <span class="px-3 py-1 rounded-full text-xs font-medium {getSeverityColor(issue.severity)}">
-                                                {issue.severity.toUpperCase()}
-                                            </span>
-                                            <h4 class="font-semibold text-gray-900">{issue.title}</h4>
-                                        </div>
-                                        <Button variant="outline" size="sm">Fix</Button>
-                                    </div>
-                                    <div class="text-sm text-gray-600">
-                                        <p>Discovered by <strong>{issue.agent}</strong> on page <code class="bg-white/30 px-2 py-1 rounded border border-white/40">{issue.page}</code></p>
-                                    </div>
+                            {#if criticalIssues.length === 0}
+                                <div class="text-center py-8">
+                                    <p class="text-gray-500">No issues found yet. Start testing to identify potential problems.</p>
                                 </div>
-                            {/each}
+                            {:else}
+                                {#each criticalIssues as issue}
+                                    <div class="border border-white/40 rounded-xl p-4 bg-white/10 backdrop-blur-sm">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <div class="flex items-center space-x-3">
+                                                <span class="px-3 py-1 rounded-full text-xs font-medium {getSeverityColor(issue.severity)}">
+                                                    {issue.severity.toUpperCase()}
+                                                </span>
+                                                <h4 class="font-semibold text-gray-900">{issue.title}</h4>
+                                            </div>
+                                            <Button variant="outline" size="sm">Fix</Button>
+                                        </div>
+                                        <div class="text-sm text-gray-600">
+                                            <p>Discovered by <strong>{issue.agent}</strong> on page <code class="bg-white/30 px-2 py-1 rounded border border-white/40">{issue.page}</code></p>
+                                        </div>
+                                    </div>
+                                {/each}
+                            {/if}
                         </div>
                     </Card>
                 </div>
@@ -502,7 +529,7 @@
             {#if activeSection === 'feedback'}
                 <Card>
                     <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-xl font-semibold text-gray-900">💬 Feedback & Action Items</h3>
+                        <h3 class="text-xl font-semibold text-gray-900">Feedback & Action Items</h3>
                         <Button variant="primary" size="sm">+ Add Task</Button>
                     </div>
 
@@ -531,55 +558,55 @@
             {#if activeSection === 'metrics'}
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📈 Performance Metrics</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
                         <div class="space-y-4">
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-600">Success Rate</span>
-                                <span class="font-semibold text-green-600">94.2%</span>
+                                <span class="font-semibold text-green-600">--</span>
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-600">Error Rate</span>
-                                <span class="font-semibold text-red-600">5.8%</span>
+                                <span class="font-semibold text-red-600">--</span>
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-600">Security Hits</span>
-                                <span class="font-semibold text-orange-600">3</span>
+                                <span class="font-semibold text-orange-600">--</span>
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-600">Avg Response Time</span>
-                                <span class="font-semibold text-[#6DBDD5]">1.2s</span>
+                                <span class="font-semibold text-[#6DBDD5]">--</span>
                             </div>
                         </div>
                     </Card>
 
                     <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">🎯 Agent Performance</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Agent Performance</h3>
                         <div class="space-y-3">
                             <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600">The Hacker (2 instances)</span>
+                                <span class="text-sm text-gray-600">The Hacker (0 instances)</span>
                                 <div class="flex items-center space-x-2">
                                     <div class="w-20 bg-white/30 rounded-full h-2 border border-white/40">
-                                        <div class="bg-red-500 h-2 rounded-full" style="width: 85%"></div>
+                                        <div class="bg-gray-300 h-2 rounded-full" style="width: 0%"></div>
                                     </div>
-                                    <span class="text-xs text-gray-600">85%</span>
+                                    <span class="text-xs text-gray-600">--</span>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600">Mobile Sarah (2 instances)</span>
+                                <span class="text-sm text-gray-600">Mobile Sarah (0 instances)</span>
                                 <div class="flex items-center space-x-2">
                                     <div class="w-20 bg-white/30 rounded-full h-2 border border-white/40">
-                                        <div class="bg-green-500 h-2 rounded-full" style="width: 92%"></div>
+                                        <div class="bg-gray-300 h-2 rounded-full" style="width: 0%"></div>
                                     </div>
-                                    <span class="text-xs text-gray-600">92%</span>
+                                    <span class="text-xs text-gray-600">--</span>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600">Power User (3 instances)</span>
+                                <span class="text-sm text-gray-600">Power User (0 instances)</span>
                                 <div class="flex items-center space-x-2">
                                     <div class="w-20 bg-white/30 rounded-full h-2 border border-white/40">
-                                        <div class="bg-[#6DBDD5] h-2 rounded-full" style="width: 88%"></div>
+                                        <div class="bg-gray-300 h-2 rounded-full" style="width: 0%"></div>
                                     </div>
-                                    <span class="text-xs text-gray-600">88%</span>
+                                    <span class="text-xs text-gray-600">--</span>
                                 </div>
                             </div>
                         </div>
@@ -590,7 +617,7 @@
             <!-- Persona Control -->
             {#if activeSection === 'settings'}
                 <Card>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-6">🧬 Persona Control Center</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Persona Control Center</h3>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {#each Object.entries(personaConfig) as [persona, config]}
@@ -622,9 +649,9 @@
 
                                 <div class="space-y-2">
                                     {#if config.count > 0}
-                                        <Button variant="outline" size="sm" class="w-full">🛑 Stop All</Button>
+                                        <Button variant="outline" size="sm" class="w-full">Stop All</Button>
                                     {:else}
-                                        <Button variant="primary" size="sm" class="w-full" onclick={() => updatePersonaCount(persona, 1)}>🚀 Start Testing</Button>
+                                        <Button variant="primary" size="sm" class="w-full" onclick={() => updatePersonaCount(persona, 1)}>Start Testing</Button>
                                     {/if}
                                 </div>
                             </div>
@@ -634,12 +661,12 @@
                     <div class="mt-8 pt-6 border-t border-white/30">
                         <div class="flex items-center justify-between">
                             <div>
-                                <h4 class="font-semibold text-gray-900">Total Active Agents: {projectData.activeAgents}</h4>
-                                <p class="text-sm text-gray-600">Estimated cost: $0.{(projectData.activeAgents * 12).toString().padStart(2, '0')}/hour</p>
+                                <h4 class="font-semibold text-gray-900">Total Active Agents: {Object.values(personaConfig).reduce((sum, config) => sum + config.count, 0)}</h4>
+                                <p class="text-sm text-gray-600">Estimated cost: $0.{(Object.values(personaConfig).reduce((sum, config) => sum + config.count, 0) * 12).toString().padStart(2, '0')}/hour</p>
                             </div>
                             <div class="space-x-2">
-                                <Button variant="outline" onclick={stopAllTests}>🛑 Stop All Tests</Button>
-                                <Button variant="primary">💾 Save Configuration</Button>
+                                <Button variant="outline" onclick={stopAllTests}>Stop All Tests</Button>
+                                <Button variant="primary">Save Configuration</Button>
                             </div>
                         </div>
                     </div>
@@ -650,22 +677,22 @@
             {#if activeSection === 'export'}
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📤 Export Options</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Export Options</h3>
                         <div class="space-y-3">
-                            <Button variant="outline" class="w-full justify-start">📊 Export Full Report (PDF)</Button>
-                            <Button variant="outline" class="w-full justify-start">📋 Export Issues (CSV)</Button>
-                            <Button variant="outline" class="w-full justify-start">💬 Export Tasks (JSON)</Button>
-                            <Button variant="outline" class="w-full justify-start">📈 Export Metrics (Excel)</Button>
+                            <Button variant="outline" class="w-full justify-start">Export Full Report (PDF)</Button>
+                            <Button variant="outline" class="w-full justify-start">Export Issues (CSV)</Button>
+                            <Button variant="outline" class="w-full justify-start">Export Tasks (JSON)</Button>
+                            <Button variant="outline" class="w-full justify-start">Export Metrics (Excel)</Button>
                         </div>
                     </Card>
 
                     <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">🔄 Test Controls</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Test Controls</h3>
                         <div class="space-y-3">
-                            <Button variant="primary" class="w-full" onclick={() => activeSection = 'settings'}>🚀 Configure & Start Tests</Button>
-                            <Button variant="outline" class="w-full">⏸️ Pause Current Tests</Button>
-                            <Button variant="outline" class="w-full">🔄 Restart Failed Tests</Button>
-                            <Button variant="secondary" class="w-full">📋 Clone Test Configuration</Button>
+                            <Button variant="primary" class="w-full" onclick={() => activeSection = 'settings'}>Configure & Start Tests</Button>
+                            <Button variant="outline" class="w-full">Pause Current Tests</Button>
+                            <Button variant="outline" class="w-full">Restart Failed Tests</Button>
+                            <Button variant="secondary" class="w-full">Clone Test Configuration</Button>
                         </div>
                     </Card>
                 </div>
