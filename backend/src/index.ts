@@ -3,6 +3,7 @@ import { Agent, llmConfig, model } from "./client";
 import { getSessionEvaluationPrompt, Personality } from "../lib/prompts";
 import { cors } from '@elysiajs/cors'
 import { chromium, ChromiumBrowser } from "playwright";
+import { supabase } from "../lib/supabase";
 
 async function runAgent(browser: ChromiumBrowser, url: string, personality: Personality, projectId: number, notes: string) {
     const agent = new Agent(personality, projectId);
@@ -53,6 +54,24 @@ async function runAgent(browser: ChromiumBrowser, url: string, personality: Pers
         { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: finalTestHistory.screenshot } }] }
       ]
     });
+    // parse the response as json and also handle if it happens to wrapped by ```json..```
+    let finalObject = JSON.parse((response.text || '{}').replace(/```json\s*|\s*```/g, '').trim());
+    
+    // make another row 
+    await supabase
+      .from('actions')
+      .insert({
+        project_id: projectId,
+        personality,
+        action: 'evaluation',
+        description: finalTestHistory.textContent,
+        screenshot: finalTestHistory.screenshot,
+        created_at: new Date().toISOString(),
+        finalVerdict: finalObject.verdict || 'No verdict provided',
+        finalIssues: finalObject.issues || [],
+        finalSuggestions: finalObject.suggestions || [],
+        finalSummary: finalObject.summary || '',
+      });
     let finalEvaluation = response.text;
     console.log('Session Evaluation:', finalEvaluation);
     return { success: true, actions: allActions };
