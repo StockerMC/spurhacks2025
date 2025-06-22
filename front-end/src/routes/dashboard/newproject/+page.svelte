@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import Card from '$lib/components/Card.svelte';
-    import CharacterCard from "$lib/components/CharacterCard.svelte";
     import Button from '$lib/components/Button.svelte';
     import CatBox from "$lib/images/cat_box.png";
     import CatAnimation from '$lib/components/CatAnimation.svelte';
@@ -64,18 +63,60 @@
     let specificTests = $state<string[]>([]);
     let customTests = $state('');
     let selectedAgents = $state<string[]>([]);
+    let agentCounts = $state<Record<string, number>>({});
     let additionalNotes = $state('');
 
     const testingTypes = [
-        { name: "Full Website Audit", description: "Comprehensive testing of entire website", icon: "🌐", question: "test everything thoroughly?" },
-        { name: "Security Focus", description: "Deep security and vulnerability testing", icon: "🛡️", question: "find all security holes?" },
-        { name: "UX & Usability", description: "User experience and accessibility testing", icon: "👥", question: "is this user-friendly?" },
-        { name: "Performance Testing", description: "Speed, load times, and optimization", icon: "⚡", question: "how fast does this load?" }
+        {
+            name: "Full Website Audit",
+            description: "Comprehensive testing of entire website",
+            icon: "🌍",
+            iconClass: "text-blue-500"
+        },
+        {
+            name: "Security Focus",
+            description: "Deep security and vulnerability testing",
+            icon: "🔒",
+            iconClass: "text-red-500"
+        },
+        {
+            name: "UX & Usability",
+            description: "User experience and accessibility testing",
+            icon: "👤",
+            iconClass: "text-purple-500"
+        },
+        {
+            name: "Performance Testing",
+            description: "Speed, load times, and optimization",
+            icon: "⚡",
+            iconClass: "text-yellow-500"
+        }
     ];
 
-    const commonPages = ["Homepage", "Login/Signup", "Product Pages", "Checkout/Payment", "User Dashboard", "Contact/Support", "About Us", "Search Results"];
+    const commonPages = [
+        "Homepage",
+        "Login/Signup",
+        "Product Pages",
+        "Checkout/Payment",
+        "User Dashboard",
+        "Contact/Support",
+        "About Us",
+        "Search Results",
+        "Blog/News"
+    ];
 
-    const testCategories = ["Cross-browser compatibility", "Mobile responsiveness", "Form validation", "Payment processing", "User authentication", "Search functionality", "Navigation flow", "Error handling", "Data security", "Performance optimization"];
+    const testCategories = [
+        "Cross-browser compatibility",
+        "Mobile responsiveness",
+        "Form validation",
+        "Payment processing",
+        "User authentication",
+        "Search functionality",
+        "Navigation flow",
+        "Error handling",
+        "Data security",
+        "Performance optimization"
+    ];
 
     const profiles = [
         { name: "The Hacker", description: "finds every vulnerability", icon: "🔒", color: "from-red-400 to-red-600", question: "what if I try to break this?" },
@@ -92,8 +133,37 @@
         const index = array.indexOf(item);
         index > -1 ? array.splice(index, 1) : array.push(item);
     };
+
+    const toggleAgent = (agentName: string) => {
+        const index = selectedAgents.indexOf(agentName);
+        if (index > -1) {
+            selectedAgents.splice(index, 1);
+            delete agentCounts[agentName];
+        } else {
+            selectedAgents.push(agentName);
+            agentCounts[agentName] = 1;
+        }
+    };
+
+    const updateAgentCount = (agentName: string, count: number) => {
+        if (count >= 1 && count <= 50) {
+            agentCounts[agentName] = count;
+        }
+    };
+
     const createProject = () => {
-        console.log('Creating project with:', { projectName, websiteUrl, testingType, selectedPages, customPages, specificTests, customTests, selectedAgents, additionalNotes });
+        console.log('Creating project with:', {
+            projectName,
+            websiteUrl,
+            testingType,
+            selectedPages,
+            customPages,
+            specificTests,
+            customTests,
+            selectedAgents,
+            agentCounts,
+            additionalNotes
+        });
         alert('Project created successfully!');
     };
 </script>
@@ -183,7 +253,20 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {#each testingTypes as type}
-                                    <CharacterCard icon={type.icon} name={type.name} description={type.description} question={type.question} selected={testingType === type.name} onclick={() => testingType = type.name} />
+                                    <button
+                                            class="p-6 rounded-xl border-2 transition-all text-left hover:shadow-lg hover:border-blue-500 hover:bg-blue-50 {testingType === type.name ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200 bg-white/80'}"
+                                            onclick={() => testingType = type.name}
+                                    >
+                                        <div class="flex items-start space-x-4">
+                                            <div class="text-3xl {type.iconClass}">
+                                                {type.icon}
+                                            </div>
+                                            <div class="flex-1">
+                                                <h3 class="font-semibold text-gray-900 mb-1">{type.name}</h3>
+                                                <p class="text-sm text-gray-600">{type.description}</p>
+                                            </div>
+                                        </div>
+                                    </button>
                                 {/each}
                             </div>
                             <div class="flex justify-between mt-8">
@@ -202,7 +285,7 @@
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                                 {#each commonPages as page}
-                                    <button class="p-3 rounded-xl border-2 transition-all {selectedPages.includes(page) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white/60'}" onclick={() => toggleSelection(selectedPages, page)}>
+                                    <button class="p-3 rounded-xl border-2 transition-all hover:border-blue-500 hover:shadow-md hover:bg-blue-50 {selectedPages.includes(page) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white/60'}" onclick={() => toggleSelection(selectedPages, page)}>
                                         <span class="text-sm font-medium">{page}</span>
                                     </button>
                                 {/each}
@@ -227,7 +310,7 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                                 {#each testCategories as test}
-                                    <button class="p-4 rounded-xl border-2 transition-all text-left {specificTests.includes(test) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white/60'}" onclick={() => toggleSelection(specificTests, test)}>
+                                    <button class="p-4 rounded-xl border-2 transition-all text-left hover:border-blue-500 hover:shadow-md hover:bg-blue-50 {specificTests.includes(test) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white/60'}" onclick={() => toggleSelection(specificTests, test)}>
                                         <span class="text-sm font-medium">{test}</span>
                                     </button>
                                 {/each}
@@ -252,11 +335,42 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {#each profiles as profile}
-                                    <CharacterCard icon={profile.icon} name={profile.name} description={profile.description} question={profile.question} selected={selectedAgents.includes(profile.name)} onclick={() => toggleSelection(selectedAgents, profile.name)} />
+                                    <div class="relative">
+                                        <button
+                                                class="w-full p-6 rounded-xl border-2 transition-all text-left hover:shadow-lg hover:border-blue-500 hover:bg-blue-50 {selectedAgents.includes(profile.name) ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200 bg-white/80'}"
+                                                onclick={() => toggleAgent(profile.name)}
+                                        >
+                                            <div class="flex items-start space-x-4">
+                                                <div class="text-3xl">
+                                                    {profile.icon}
+                                                </div>
+                                                <div class="flex-1">
+                                                    <h3 class="font-semibold text-gray-900 mb-1">{profile.name}</h3>
+                                                    <p class="text-sm text-gray-600 mb-2">{profile.description}</p>
+                                                    <p class="text-xs text-gray-500 italic">"{profile.question}"</p>
+                                                </div>
+                                            </div>
+                                        </button>
+                                        {#if selectedAgents.includes(profile.name)}
+                                            <div class="absolute top-2 left-2">
+                                                <select
+                                                        bind:value={agentCounts[profile.name]}
+                                                        class="w-12 h-8 bg-blue-500 text-white text-sm font-medium rounded text-center appearance-none cursor-pointer outline-none"
+                                                >
+                                                    {#each Array.from({length: 50}, (_, i) => i + 1) as num}
+                                                        <option value={num}>{num}</option>
+                                                    {/each}
+                                                </select>
+                                            </div>
+                                        {/if}
+                                    </div>
                                 {/each}
                             </div>
                             <div class="mt-6 p-4 bg-blue-50 rounded-xl">
-                                <p class="text-sm text-blue-800"><strong>Tip:</strong> We recommend selecting at least 3-4 different agent types for comprehensive testing coverage.</p>
+                                <p class="text-sm text-blue-800">
+                                    <strong>Tip:</strong> We recommend selecting at least 3-4 different agent types for comprehensive testing coverage.
+                                    Total agents: <strong>{Object.values(agentCounts).reduce((sum, count) => sum + count, 0)}</strong>
+                                </p>
                             </div>
                             <div class="flex justify-between mt-8">
                                 <Button variant="outline" onclick={prevStep}>← Back</Button>
@@ -279,7 +393,7 @@
                                         <div><span class="text-gray-600">Project Name:</span><span class="font-medium ml-2">{projectName}</span></div>
                                         <div><span class="text-gray-600">Website:</span><span class="font-medium ml-2">{websiteUrl}</span></div>
                                         <div><span class="text-gray-600">Testing Type:</span><span class="font-medium ml-2">{testingType}</span></div>
-                                        <div><span class="text-gray-600">Selected Agents:</span><span class="font-medium ml-2">{selectedAgents.length}</span></div>
+                                        <div><span class="text-gray-600">Total Agents:</span><span class="font-medium ml-2">{Object.values(agentCounts).reduce((sum, count) => sum + count, 0)}</span></div>
                                     </div>
                                 </div>
                                 <div>
@@ -307,6 +421,3 @@
     .font-inter { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     textarea { resize: none; }
 </style>
-
-
-// FIXME: ALLOW NUMBER OF LLM AGENTS PER THING TO INCREASE
