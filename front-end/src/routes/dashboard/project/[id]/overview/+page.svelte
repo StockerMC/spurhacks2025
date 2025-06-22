@@ -3,7 +3,17 @@
     import Button from "$lib/components/Button.svelte";
     import { createClient } from "@supabase/supabase-js";
     import { page } from "$app/state";
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
+
+    onMount(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && selectedAgent) {
+                selectedAgent = null;
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    });
 
     interface Props {
         testingStarted: boolean;
@@ -124,191 +134,63 @@
   <!-- Agent Activity Card -->
   <Card>
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Agent Activity</h3>
-    <div class="max-h-64 overflow-y-auto space-y-3 pr-2">
+    <div class="bg-[#18181b] rounded-xl p-4 font-mono text-sm text-green-400 max-h-64 overflow-y-auto border border-gray-700 shadow-inner relative">
+      <div class="mb-2 text-gray-400">
+        ┌─[pawditor@agents]─[Activity]
+      </div>
       {#if selectedAgent}
-        <!-- Agent Detail View (copied from /live) -->
         <div>
-          <div class="flex items-center justify-between mb-6">
-            <div class="flex items-center space-x-3">
-              <Button
-                      variant="outline"
-                      size="sm"
-                      onclick={() => (selectedAgent = null)}
-              >← Back
-              </Button
-              >
-              <h3 class="text-xl font-semibold text-gray-900">
-                Container: {agentToHumanFriendlyName(
-                  selectedAgent.name,
-              )}
-              </h3>
-              <span
-                      class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full border border-green-200"
-              >{selectedAgent.status}</span
-              >
-            </div>
-            <Button variant="outline" size="sm"
-            >Stop Container
-            </Button
-            >
+          <div class="text-blue-400 mb-2">
+            $ agentctl inspect {selectedAgent.name}
           </div>
-          <div
-                  class="cursor-pointer bg-white/90 rounded-xl shadow-lg border border-blue-100 p-6 mb-6"
-          >
-            <div class="flex items-center mb-2">
-              <span class="text-2xl mr-3">🧠</span>
-              <h4 class="text-lg font-bold text-blue-800 flex-1">
-                {selectedAgent.title || "Action Details"}
-              </h4>
-              <span
-                      class="px-2 py-1 rounded-full text-xs font-semibold {selectedAgent.finalVerdict ===
-                                'fail'
-                                    ? 'bg-red-100 text-red-700'
-                                    : selectedAgent.finalVerdict === 'pass'
-                                      ? 'bg-green-100 text-green-700'
-                                      : 'bg-yellow-100 text-yellow-700'}"
-              >
-                                {selectedAgent.finalVerdict
-                                    ? selectedAgent.finalVerdict.toUpperCase()
-                                    : selectedAgent.status}
-                            </span>
-            </div>
-            <div class="text-gray-700 mb-2 text-sm">
-              {selectedAgent.explanation}
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-              <div>
-                <div class="font-semibold text-gray-800 mb-1">
-                  Agent
-                </div>
-                <div class="text-gray-600">
-                  {selectedAgent.agent}
-                </div>
-              </div>
-              <div>
-                <div class="font-semibold text-gray-800 mb-1">
-                  Time
-                </div>
-                <div class="text-gray-600">
-                  {selectedAgent.created_at
-                      ? new Date(
-                          selectedAgent.created_at,
-                      ).toLocaleString()
-                      : "N/A"}
-                </div>
-              </div>
-            </div>
-            {#if selectedAgent.changes && selectedAgent.changes.length}
-              <div class="mb-2">
-                <div class="font-semibold text-gray-800 mb-1">
-                  Steps/Changes
-                </div>
-                <ul
-                        class="list-disc list-inside text-gray-700 text-sm"
-                >
-                  {#each selectedAgent.changes as change}
-                    <li>{change}</li>
-                  {/each}
-                </ul>
-              </div>
-            {/if}
-            {#if selectedAgent.issues && selectedAgent.issues.length}
-              <div class="mb-2">
-                <div class="font-semibold text-red-700 mb-1">
-                  Issues Found
-                </div>
-                <ul
-                        class="list-disc list-inside text-red-700 text-sm"
-                >
-                  {#each selectedAgent.issues as issue}
-                    <li>{issue}</li>
-                  {/each}
-                </ul>
-              </div>
-            {/if}
+          <div class="text-gray-300 mb-2">
+            Status: <span class="{selectedAgent.status === 'completed' ? 'text-green-400' : selectedAgent.status === 'error' ? 'text-red-400' : 'text-yellow-400'}">{selectedAgent.status}</span>
           </div>
-          <div
-                  class="bg-black text-green-400 p-4 rounded-xl font-mono text-sm overflow-x-auto border border-gray-600"
-          >
-            <div class="mb-2 text-gray-400">
-              Docker Container Logs - {selectedAgent.id}
-            </div>
-            {#each [`[${new Date().toISOString()}] Starting agent container ${selectedAgent.id}`, `[${new Date().toISOString()}] Loading persona: ${agentToHumanFriendlyName(selectedAgent.name)}`, `[${new Date().toISOString()}] Connecting to target: https://example.com`, `[${new Date().toISOString()}] Executing: ${selectedAgent.action}`, `[${new Date().toISOString()}] Status: ${selectedAgent.status}`, `[${new Date().toISOString()}] Memory usage: 45MB`, `[${new Date().toISOString()}] CPU usage: 12%`, `[${new Date().toISOString()}] Network requests: 23`, `[${new Date().toISOString()}] Last heartbeat: ${selectedAgent.lastUpdate}`] as log}
-              <div class="mb-1">{log}</div>
-            {/each}
-            <div class="text-yellow-400 animate-pulse">
-              $ Waiting for next command...
-            </div>
+          <div class="text-gray-300 mb-2">
+            Title: {selectedAgent.title || selectedAgent.action}
           </div>
-          <div class="mt-4 grid grid-cols-3 gap-4">
-            <div class="text-center">
-              <div class="text-lg font-semibold text-gray-900">
-                45MB
-              </div>
-              <div class="text-sm text-gray-600">
-                Memory Usage
-              </div>
-            </div>
-            <div class="text-center">
-              <div class="text-lg font-semibold text-gray-900">
-                12%
-              </div>
-              <div class="text-sm text-gray-600">CPU Usage</div>
-            </div>
-            <div class="text-center">
-              <div class="text-lg font-semibold text-gray-900">
-                23
-              </div>
-              <div class="text-sm text-gray-600">
-                Network Requests
-              </div>
-            </div>
+          <div class="text-gray-300 mb-2">
+            Last Update: {selectedAgent.lastUpdate}
+          </div>
+          <div class="text-gray-300 mb-2">
+            Issues: {selectedAgent.issues?.length || 0}
+          </div>
+          <div class="text-gray-300 mb-2">
+            Changes: {selectedAgent.changes?.length || 0}
+          </div>
+          <div class="text-gray-400 mt-4">
+            [Press <span class="text-yellow-400">ESC</span> to go back]
           </div>
         </div>
       {:else if testingStarted && agentInstances.length > 0}
         {#each agentInstances as agent}
-          <button
-                  class="w-full text-left"
-                  onclick={() => {
-                            selectedAgent = agent;
-                        }}
-          >
-            <div
-                    class="flex items-center space-x-3 p-3 bg-white/60 hover:bg-blue-50 rounded-xl border border-white/40 transition-all"
+          <div class="flex items-center mb-1">
+            <span class="text-blue-400 mr-2">$</span>
+            <button
+                    class="text-left flex-1 hover:text-yellow-300 transition"
+                    onclick={() => { selectedAgent = agent; }}
             >
-              <div
-                      class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
-              ></div>
-              <div class="flex-1">
-                <p
-                        class="text-sm font-semibold text-gray-900 flex items-center gap-2"
-                >
-                  {agentToHumanFriendlyName(agent.name)}
-                  <span
-                          class="text-xs px-2 py-0.5 rounded-full {agent.status ===
-                                        'completed'
-                                            ? 'bg-green-100 text-green-700'
-                                            : agent.status === 'error'
-                                              ? 'bg-red-100 text-red-700'
-                                              : 'bg-blue-100 text-blue-700'}"
-                  >
-                                        {agent.status}
-                                    </span>
-                </p>
-                <p class="text-xs text-gray-600 truncate">
-                  {agent.title || agent.action}
-                </p>
-              </div>
-              <span class="text-xs text-gray-500"
-              >{agent.lastUpdate}</span
-              >
-            </div>
-          </button>
+              {agentToHumanFriendlyName(agent.name)} <span class="{agent.status === 'completed' ? 'text-green-400' : agent.status === 'error' ? 'text-red-400' : 'text-yellow-400'}">[{agent.status}]</span>
+              <span class="text-gray-500 ml-2">{agent.title || agent.action}</span>
+            </button>
+          </div>
         {/each}
       {:else}
-        <p class="text-gray-500 text-center py-4">{testingStarted ?
-            "Agents are working..." : "No active testing"}</p>
+        <div class="text-gray-500 py-4">$ {testingStarted ? "Agents are working..." : "No active testing"}</div>
       {/if}
+      <div class="absolute bottom-2 left-4 text-green-400">
+        <span class="animate-pulse">▊</span>
+      </div>
     </div>
   </Card>
 </div>
+
+<style>
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+    }
+    .animate-pulse {
+        animation: blink 1s step-end infinite;
+    }
+</style>

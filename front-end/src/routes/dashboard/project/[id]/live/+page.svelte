@@ -58,7 +58,7 @@
     {#each actions as action}
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center space-x-3">
-          {#if action.status === "success"}
+          {#if action.status === "success" || (action.status === "failure" && action.agent === "hacker")}
             <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
           {:else}
             <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
