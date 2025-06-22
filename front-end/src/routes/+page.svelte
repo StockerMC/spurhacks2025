@@ -153,6 +153,18 @@
       </div>
     </div>
   </div>
+
+  <div class="flex justify-center w-full pt-24">
+    <div class="text-center mb-12 max-w-4xl">
+      <h2 class="text-4xl md:text-5xl font-bold text-gray-800 mb-6">
+        Meet Your <span class="text-[#DC5270]">Virtual</span> Testing Team
+      </h2>
+      <p class="text-xl text-gray-600">
+        Each AI tester brings a unique perspective to uncover different types of issues
+      </p>
+    </div>
+  </div>
+
   <div class="flex justify-center w-full pt-12">
     <HomeCard>
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
