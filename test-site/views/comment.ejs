@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Comment</title>
+  <meta name="viewport" content="width=500">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/">Home</a>
+    <a href="/login">Login</a>
+    <a href="/register">Register</a>
+    <a href="/admin">Admin</a>
+    <a href="/profile">Profile</a>
+    <a href="/broken-nav">Broken Nav</a>
+    <a href="/logout">Logout</a>
+  </nav>
+  <main>
+    <h1>Comment</h1>
+    <div>Your comment (XSS vulnerable):</div>
+    <div class="comment"><%- comment %></div>
+    <a href="/">Back</a>
+  </main>
+</body>
+</html>

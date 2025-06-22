@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Demo Web App</title>
+  <meta name="viewport" content="width=500">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/">Home</a>
+    <a href="/login">Login</a>
+    <a href="/register">Register</a>
+    <a href="/admin">Admin</a>
+    <a href="/profile">Profile</a>
+    <a href="/broken-nav">Broken Nav</a>
+    <a href="/logout">Logout</a>
+  </nav>
+  <main>
+    <h1>Welcome<% if (user) { %>, <%= user.username %><% } %>!</h1>
+    <p>Explore the features of this demo web application.</p>
+    <form action="/comment" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label for="comment">Leave a comment:</label>
+      <input type="text" id="comment" name="comment">
+      <button type="submit">Submit</button>
+    </form>
+    <div style="background:#fff;color:#bbb;padding:8px;margin:12px 0;">This text has low color contrast.</div>
+    <img src="/logo.png" style="width:100px;height:100px;">
+    <div class="mobile-menu">☰</div>
+    <div style="margin-top:24px;">
+      <button style="background:#eee;color:#bbb;">Low Contrast Button</button>
+      <button style="background:#222;color:#fff;">Normal Button</button>
+    </div>
+    <ul style="margin-top:24px;">
+      <li>Try resizing the window to see the menu responsiveness.</li>
+      <li>Test navigation and form submission.</li>
+      <li>Check accessibility features and keyboard navigation.</li>
+    </ul>
+  </main>
+</body>
+</html>
