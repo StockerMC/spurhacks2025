@@ -104,14 +104,14 @@
             </label>
           </div>
           <div class="text-sm">
-            <a class="font-medium text-blue-600 hover:text-blue-500" href="#">
+            <a class="font-medium text-[#6DBDD5] brightness-75" href="#">
               Forgot your password?
             </a>
           </div>
         </div>
         <div class="space-y-4">
           <a
-                  class="inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed border bg-blue-600 text-white border-blue-700 hover:bg-blue-700 hover:shadow-lg focus:ring-blue-500 px-8 py-4 text-lg rounded-2xl w-full"
+                  class="inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-[#6DBDD5] text-white hover:shadow-lg px-8 py-4 text-lg rounded-2xl w-full"
                   href="#"
                   on:click|preventDefault={handleLogin}
           >
@@ -126,7 +126,7 @@
           <div class="text-center">
             <span class="text-sm text-gray-600">
               Don&#39;t have an account?
-              <a class="font-medium text-blue-600 hover:text-blue-500" href="#">
+              <a class="font-medium text-[#6DBDD5] brightness-75" href="#">
                 Sign up
               </a>
             </span>
