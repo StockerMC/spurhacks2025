@@ -20,15 +20,36 @@
 
 
 
-    // Mock data for demonstration
+    // Project data from Supabase
     let projectData = $state({
-        name: "E-commerce Platform Test",
-        status: "running",
-        activeAgents: 8,
-        totalTests: 1247,
-        issuesFound: 12,
-        uptime: "2h 34m",
-        estimatedCompletion: "45 minutes"
+        name: "",
+        status: "",
+        activeAgents: 0,
+        totalTests: 0,
+        issuesFound: 0,
+        uptime: "",
+        estimatedCompletion: ""
+    });
+
+    // Fetch project data from Supabase on mount
+    onMount(async () => {
+        const { data, error } = await supabase
+            .from("projects")
+            .select("*")
+            .eq("id", projectId)
+            .single();
+
+        if (data) {
+            projectData = {
+                name: data?.name,
+                status: data?.status,
+                activeAgents: data?.active_agents ?? 0,
+                totalTests: data?.total_tests ?? 0,
+                issuesFound: data?.issues_found ?? 0,
+                uptime: data?.uptime ?? "",
+                estimatedCompletion: data?.estimated_completion ?? ""
+            };
+        }
     });
 
     // Agent instances with unique IDs
