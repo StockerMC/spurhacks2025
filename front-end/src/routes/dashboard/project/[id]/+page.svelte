@@ -9,8 +9,8 @@
     import { page } from '$app/state';
 
 
-    let slug = page.params.id;
-    console.log(slug);
+    let projectId = page.params.id;
+    console.log(projectId);
 
 
     let activeSection = $state('overview');
@@ -135,6 +135,32 @@
         res.then(data => {
             projectsList = data.data;
         });
+    });
+
+    // Supabase real-time agentInstances for this project
+    onMount(() => {
+        const channel = supabase.channel('actions-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'actions', filter: `project_id=eq.${projectId}` },
+                (payload) => {
+                    if (payload.eventType === 'INSERT') {
+                        agentInstances = [...agentInstances, payload.new];
+                    } else if (payload.eventType === 'UPDATE') {
+                        agentInstances = agentInstances.map(a => a.id === payload.new.id ? payload.new : a);
+                    } else if (payload.eventType === 'DELETE') {
+                        agentInstances = agentInstances.filter(a => a.id !== payload.old.id);
+                    }
+                }
+            )
+            .subscribe();
+        // Fetch initial agentInstances for this project
+        supabase.from('actions').select('*').eq('project_id', projectId).then(({ data }) => {
+            if (data) agentInstances = data;
+        });
+        return () => {
+            supabase.removeChannel(channel);
+        };
     });
 
     const supabase = createClient(

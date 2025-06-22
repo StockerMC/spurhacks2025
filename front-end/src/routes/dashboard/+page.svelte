@@ -108,7 +108,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- New Project Card -->
         <button
-                class="group relative bg-white rounded-2xl border-2 border-dashed border-gray-300 hover:border-[#6DBDD5] transition-all duration-300 p-8 flex flex-col items-center justify-center min-h-[320px] hover:shadow-lg"
+                class="group relative bg-white rounded-2xl border-2 border-dashed border-gray-300 hover:border-[#6DBDD5] transition-all duration-300 p-8 flex flex-col items-center justify-center min-h-[320px] hover:shadow-lg hover:cursor-pointer"
                 onclick={createNewProject}
         >
           <img src={CatLying} alt="New Project Icon" class="group-hover:scale-110 transition-transform z-10 -mb-4 h-10"/>
