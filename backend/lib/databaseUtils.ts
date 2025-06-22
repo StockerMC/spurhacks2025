@@ -55,7 +55,26 @@ export const uploadProjectPhoto = async (
     console.error('Error uploading photo:', error);
     return null;
   }
-  return supabase.storage.from('project-media').getPublicUrl(path).data.publicUrl;
+  const url = supabase.storage.from('media').getPublicUrl(path).data.publicUrl;
+  const { data: mediaData, error: mediaError } = await supabase
+    .from('media')
+    .insert({
+      project_id: projectId,
+      personality,
+      type: 'photo',
+      url,
+      filename,
+      created_at: new Date().toISOString()
+    })
+    .select()
+    .single();
+
+  if (mediaError) {
+    console.error('Error inserting media record:', mediaError);
+    return null;
+  }
+
+  return url;
 //   const { data: updateData, error: updateError } = await supabase
 //     .from('media')
 
@@ -82,5 +101,17 @@ export const uploadProjectVideo = async (
     console.error('Error uploading video:', error);
     return null;
   }
-  return supabase.storage.from('project-media').getPublicUrl(path).data.publicUrl;
+  const url = supabase.storage.from('media').getPublicUrl(path).data.publicUrl;
+  const { data: mediaData, error: mediaError } = await supabase
+    .from('media')
+    .insert({
+      project_id: projectId,
+      personality,
+      type: 'video',
+      url,
+      filename,
+      created_at: new Date().toISOString()
+    })
+    .select()
+    .single();
 };
