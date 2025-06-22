@@ -77,7 +77,7 @@ ${snapshotSection}
 
 ---
 
-🎯 INSTRUCTIONS:
+INSTRUCTIONS:
 Return a JSON array of specific, useful actions to:
 - Advance interaction meaningfully
 - Reveal bugs, violations, or state changes
@@ -293,6 +293,8 @@ Return your answer as JSON object without backticks just like the following— k
   "issues": ["Any issue spotted, or empty list"],
   "explanation": "One short sentence"
 }
+
+give the explanation more personality, in character with the cat personality, e.g. the hacker cat might say: "The SQL injection was a purrfect success, easy hacking!"
 `;
 }
 
