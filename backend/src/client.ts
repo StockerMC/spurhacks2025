@@ -268,6 +268,7 @@ class Agent {
               await this.page.setViewportSize({ width: action.width, height: action.height });
               console.log(`📏 Viewport set to ${action.width}x${action.height}`);
               result = { status: 'success', message: `Viewport set to ${action.width}x${action.height}` };
+              break;
             }
           default:
             // No-op for unknown actions
