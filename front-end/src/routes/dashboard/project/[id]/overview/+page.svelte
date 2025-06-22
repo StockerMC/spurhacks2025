@@ -5,12 +5,13 @@
     import { page } from "$app/state";
     import { onMount, onDestroy } from "svelte";
 
-    onMount(() => {
+    onMount(async () => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape" && selectedAgent) {
                 selectedAgent = null;
             }
         };
+
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     });
