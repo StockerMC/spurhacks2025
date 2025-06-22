@@ -25,11 +25,11 @@ export function getAnalysisPrompt(
   }
 
   const autoActions = preambleExtras.length
-    ? `\nAuto-context actions (already done, do not repeat):\n\`\`\`json\n[${preambleExtras.join(",\n")}]\n\`\`\`\n`
+    ? `\nAuto-context actions (already done, do not repeat):\n\n[${preambleExtras.join(",\n")}]\n\n`
     : "";
 
   const snapshotSection = snapshot
-    ? `Snapshot (JSON):\n\`\`\`json\n${snapshot}\n\`\`\`\n`
+    ? `Aria Snapshot:\n${snapshot}\n`
     : "";
 
   return `  
@@ -95,12 +95,10 @@ Each action object must include:
 
 Response must be ONLY a JSON array — no commentary:
 
-\`\`\`json
 [
   { "action": "type", "rawSelector": { "role": "textbox", "name": "Enter your name" }, "text": "John", "description": "Type in name" },
   { "action": "click", "rawSelector": { "role": "button", "name": "Submit" }, "description": "Submit form" }
 ]
-\`\`\`
 `;
 }
 
@@ -266,15 +264,13 @@ ${beforeSnapshot.substring(0, 1000)}${beforeSnapshot.length > 1000 ? "..." : ""}
 After (snapshot):
 ${afterSnapshot.substring(0, 1000)}${afterSnapshot.length > 1000 ? "..." : ""}
 
-Return your answer as JSON — keep it CONCISE and focused:
-\`\`\`json
+Return your answer as JSON object without backticks just like the following— keep it CONCISE and focused:
 {
   "status": "success" | "partial" | "failure",
   "changes": ["Key change 1", "Key change 2"],
   "issues": ["Any issue spotted, or empty list"],
   "explanation": "One short sentence"
 }
-\`\`\`
 `;
 }
 
@@ -287,13 +283,22 @@ export function getSessionEvaluationPrompt(
   finalText: string,
   finalSnapshot: string
 ) {
+  let historyContext = '';
+  if (testHistory.length > 0) {
+    historyContext = `\nPrevious tests:\n${testHistory.map((iter, index) => {
+      let iterationInfo = `${index + 1}:\n`;
+      iterationInfo += `Actions tried: ${JSON.stringify(iter.actions).replace(' +', ' ')}\n`;
+      return iterationInfo;
+    }).join('\n')}`;
+  }
+
   return `
 You are an expert test agent. Analyze the following test session:
 
 Personality: ${personality}
 
 Test History (actions, evaluations, issues):
-${JSON.stringify(testHistory, null, 1).replace(' +', ' ')}
+${JSON.stringify(historyContext, null, 1).replace(' +', ' ')}
 
 Final Page Content:
 ${finalText.replace(' +', ' ').substring(0, 1000)}${finalText.replace(' +', ' ').length > 1000 ? "..." : ""}

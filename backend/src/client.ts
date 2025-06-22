@@ -1,12 +1,22 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { getAnalysisPrompt, Personality, getActionEvaluationPrompt, getSelectorFromAria } from '../lib/prompts';
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import * as path from 'path';
 import * as fs from 'fs';
 
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-export const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+const ai = new GoogleGenAI({
+  vertexai: true,
+  project: process.env.GOOGLE_CLOUD_PROJECT, // Replace with your Google Cloud project ID
+  location: 'us-central1',
+});
+ai
+export const model = ai.models;
+export const llmConfig = {
+  temperature: 0.2,
+  topP: 0.2,
+  topK: 20
+};
 
 // Interface for test actions
 interface TestAction {
@@ -102,16 +112,30 @@ class Agent {
       JSON.stringify(ariaSnapshot).replace(' +', ' ')
     );
 
-    console.log(analysisPrompt);
-
-    // gemini call
-    const response = await model.generateContent({
+    // Use the countTokens API to estimate token usage for the prompt and screenshot
+    const promptTokenCount = await model.countTokens({
+      model: 'gemini-2.0-flash',
       contents: [
         { role: 'user', parts: [{ text: analysisPrompt }] },
         { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] }
       ]
     });
-    let actionPlan = response.response.text();
+    console.log(`🔢 Estimated tokens for prompt + screenshot:`, promptTokenCount.totalTokens);
+    // // // Write the analysis prompt to a file for debugging
+    // // fs.writeFileSync('src/screenshots/analysisPrompt.txt', analysisPrompt);
+    // console.log(analysisPrompt.length);
+    // console.log(screenshotBuffer.toString("base64").length);
+
+    // gemini call
+    const response = await model.generateContent({
+      model: 'gemini-2.0-flash',
+      config: llmConfig,
+      contents: [
+        { role: 'user', parts: [{ text: analysisPrompt }] },
+        { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] }
+      ]
+    });
+    let actionPlan = response.text || '';
 
     // Clean up the response - extract JSON from the response
     // First attempt to find JSON array in the text
@@ -260,14 +284,35 @@ class Agent {
             beforeText,
             afterText
           );
+              // Use the countTokens API to estimate token usage for the prompt and screenshot
+          const promptTokenCount = await model.countTokens({
+            model: 'gemini-2.0-flash',
+            contents: [
+              { role: 'user', parts: [{ text: evalPrompt }] },
+            ]
+          });
+          console.log(`🔢 Estimated tokens for eval prompt:`, promptTokenCount.totalTokens);
+
           const evalResponse = await model.generateContent({
+            model: 'gemini-2.0-flash',
+            config: llmConfig,
             contents: [{ role: 'user', parts: [{ text: evalPrompt }] }]
           });
           let evaluation;
           try {
-            evaluation = evalResponse.response.text();
+            evaluation = evalResponse.text ? JSON.parse(evalResponse.text) : { status: 'unknown', explanation: 'No evaluation provided', issues: [] };
           } catch (e) {
-            evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [] };
+            // Try to extract JSON if wrapped in ```json ... ```
+            const jsonBlockMatch = evalResponse.text?.match(/```json\s*([\s\S]*?)```/);
+            if (jsonBlockMatch && jsonBlockMatch[1]) {
+              try {
+                evaluation = JSON.parse(jsonBlockMatch[1]);
+              } catch {
+                evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalResponse.text] };
+              }
+            } else {
+              evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalResponse.text] };
+            }
           }
           console.log(`🔍 Action evaluation:`, evaluation);
         })();
