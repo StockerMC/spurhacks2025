@@ -4,7 +4,6 @@
   import CatBall from "$lib/images/cat_ball.gif";
   import Background from "$lib/images/background.jpg";
   import CatBox from "$lib/images/cat_box.png";
-  import CharacterCard from "$lib/components/CharacterCard.svelte";
   import Hacker from "$lib/images/hacker.png";
   import GrandpaJoe from "$lib/images/grandpa_joe.png";
   import PowerUser from "$lib/images/power_user.png";
@@ -82,8 +81,8 @@
       <a href="/about" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
         About
       </a>
-      <a href="/pricing" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
-        Pricing
+      <a href="/pricing" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+        Contact
       </a>
     </nav>
     <div class="flex items-center text-xl gap-8">
