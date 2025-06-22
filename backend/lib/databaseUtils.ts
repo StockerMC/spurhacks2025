@@ -49,7 +49,7 @@ export const uploadProjectPhoto = async (
 ) => {
   const path = `${SUPABASE_PROJECT_ID}/${projectId}/${personality}/photos/${filename}`;
   const { data, error } = await supabase.storage
-    .from('project-media')
+    .from('media')
     .upload(path, file, { upsert: true, contentType: 'image/png' });
   if (error) {
     console.error('Error uploading photo:', error);
@@ -95,7 +95,7 @@ export const uploadProjectVideo = async (
 ) => {
   const path = `${SUPABASE_PROJECT_ID}/${projectId}/${personality}/videos/${filename}`;
   const { data, error } = await supabase.storage
-    .from('project-media')
+    .from('media')
     .upload(path, file, { upsert: true, contentType: 'video/webm' });
   if (error) {
     console.error('Error uploading video:', error);
