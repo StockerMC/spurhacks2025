@@ -4,9 +4,16 @@
     import Button from '$lib/components/Button.svelte';
     import CatBox from "$lib/images/cat_box.png";
     import CatAnimation from '$lib/components/CatAnimation.svelte';
+    import { createClient } from "@supabase/supabase-js";
+
+    const supabase = createClient(
+        "https://ttnxgveqyvtsjlwvpecl.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0bnhndmVxeXZ0c2psd3ZwZWNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1NDUwNzgsImV4cCI6MjA2NjEyMTA3OH0.EkiiotOoeCCpt5kY2_oSVVTCm_7M9IXoNWUt5O8WiwQ"
+    );
 
     let currentStep = $state(1);
     let totalSteps = 6;
+    let isCreating = $state(false);
 
     // Step messages - cat-themed for speech bubbles only
     const STEP_DATA = {
@@ -145,26 +152,196 @@
         }
     };
 
-    const updateAgentCount = (agentName: string, count: number) => {
-        if (count >= 1 && count <= 50) {
-            agentCounts[agentName] = count;
-        }
-    };
+    const createProject = async () => {
+        try {
+            isCreating = true;
 
-    const createProject = () => {
-        console.log('Creating project with:', {
-            projectName,
-            websiteUrl,
-            testingType,
-            selectedPages,
-            customPages,
-            specificTests,
-            customTests,
-            selectedAgents,
-            agentCounts,
-            additionalNotes
-        });
-        alert('Project created successfully!');
+            // Insert project into database
+            const { data, error } = await supabase
+                .from('projects')
+                .insert([
+                    {
+                        name: projectName,
+                        url: websiteUrl
+                    }
+                ])
+                .select();
+
+            // Toast container style for better visibility and not cutting into the corner
+            const toastContainerStyle = `
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            left: 2rem;
+            max-width: 24rem;
+            margin-left: auto;
+            margin-right: auto;
+            z-index: 9999;
+            transform: none;
+            transition: opacity 0.3s;
+            opacity: 1;
+        `;
+
+            if (error) {
+                console.error('Error creating project:', error);
+                // Show error toast
+                const toast = document.createElement('div');
+                toast.setAttribute('style', toastContainerStyle);
+                toast.innerHTML = `
+                <div class="w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div class="p-4">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-3 w-0 flex-1">
+                                <p class="text-sm font-medium text-gray-900">Oops! Something went wrong</p>
+                                <p class="mt-1 text-sm text-gray-600">${'Error creating project: ' + error.message}</p>
+                            </div>
+                            <div class="ml-4 flex-shrink-0 flex">
+                                <button class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="close-toast-btn">
+                                    <span class="sr-only">Close</span>
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="h-1 bg-gray-100">
+                        <div class="h-full bg-gradient-to-r from-red-400 to-red-600 animate-shrink"></div>
+                    </div>
+                </div>
+                <style>
+                    @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+                    .animate-shrink { animation: shrink 4s linear forwards; }
+                </style>
+            `;
+                document.body.appendChild(toast);
+                const removeToast = () => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                };
+                toast.querySelector('#close-toast-btn')?.addEventListener('click', removeToast);
+                setTimeout(removeToast, 4000);
+                return;
+            }
+
+            // Show success toast
+            const toast = document.createElement('div');
+            toast.setAttribute('style', toastContainerStyle);
+            toast.innerHTML = `
+            <div class="w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div class="p-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-3 w-0 flex-1">
+                            <p class="text-sm font-medium text-gray-900">Success!</p>
+                            <p class="mt-1 text-sm text-gray-600">Project created successfully</p>
+                        </div>
+                        <div class="ml-4 flex-shrink-0 flex">
+                            <button class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="close-toast-btn">
+                                <span class="sr-only">Close</span>
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-1 bg-gray-100">
+                    <div class="h-full bg-gradient-to-r from-green-400 to-green-600 animate-shrink"></div>
+                </div>
+            </div>
+            <style>
+                @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+                .animate-shrink { animation: shrink 4s linear forwards; }
+            </style>
+        `;
+            document.body.appendChild(toast);
+            const removeToast = () => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            };
+            toast.querySelector('#close-toast-btn')?.addEventListener('click', removeToast);
+            setTimeout(removeToast, 4000);
+
+            // redirect to dashboard or project page after toast
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 2000);
+
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            // Show error toast
+            const toast = document.createElement('div');
+            toast.setAttribute('style', `
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            left: 2rem;
+            max-width: 24rem;
+            margin-left: auto;
+            margin-right: auto;
+            z-index: 9999;
+            transform: none;
+            transition: opacity 0.3s;
+            opacity: 1;
+        `);
+            toast.innerHTML = `
+            <div class="w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div class="p-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-3 w-0 flex-1">
+                            <p class="text-sm font-medium text-gray-900">Oops! Something went wrong</p>
+                            <p class="mt-1 text-sm text-gray-600">An unexpected error occurred. Please try again.</p>
+                        </div>
+                        <div class="ml-4 flex-shrink-0 flex">
+                            <button class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="close-toast-btn">
+                                <span class="sr-only">Close</span>
+                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-1 bg-gray-100">
+                    <div class="h-full bg-gradient-to-r from-red-400 to-red-600 animate-shrink"></div>
+                </div>
+            </div>
+            <style>
+                @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+                .animate-shrink { animation: shrink 4s linear forwards; }
+            </style>
+        `;
+            document.body.appendChild(toast);
+            const removeToast = () => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            };
+            toast.querySelector('#close-toast-btn')?.addEventListener('click', removeToast);
+            setTimeout(removeToast, 4000);
+        } finally {
+            isCreating = false;
+        }
     };
 </script>
 
@@ -407,7 +584,9 @@
                             </div>
                             <div class="flex justify-between mt-8">
                                 <Button variant="outline" onclick={prevStep}>← Back</Button>
-                                <Button variant="primary" onclick={createProject} size="lg">Launch Project</Button>
+                                <Button variant="primary" onclick={createProject} size="lg" disabled={isCreating}>
+                                    {isCreating ? 'Creating Project...' : 'Launch Project'}
+                                </Button>
                             </div>
                         </Card>
                     {/if}
