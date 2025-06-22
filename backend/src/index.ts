@@ -79,7 +79,7 @@ const app = new Elysia()
       return runAgent(browser, url, personality as Personality, projectId, notes);
     });
     await Promise.allSettled(agentPromises);
-    
+    await browser.close();
     return { success: true, message: "Test finished" };
   })
   .listen(8080);
