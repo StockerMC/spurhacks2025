@@ -5,6 +5,7 @@
     import CatBox from "$lib/images/cat_box.png";
     import CatAnimation from '$lib/components/CatAnimation.svelte';
     import { createClient } from "@supabase/supabase-js";
+    import { goto } from '$app/navigation';
 
     const supabase = createClient(
         "https://ttnxgveqyvtsjlwvpecl.supabase.co",
@@ -274,12 +275,12 @@
                 setTimeout(() => toast.remove(), 300);
             };
             toast.querySelector('#close-toast-btn')?.addEventListener('click', removeToast);
-            setTimeout(removeToast, 4000);
+            setTimeout(removeToast, 3000);
 
             // redirect to dashboard or project page after toast
             setTimeout(() => {
-                window.location.href = '/dashboard';
-            }, 2000);
+                goto('/dashboard/project/' + data[0].id);
+            }, 1000);
 
         } catch (error) {
             console.error('Unexpected error:', error);
