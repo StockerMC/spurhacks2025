@@ -200,7 +200,7 @@
         <!-- Progress Bar -->
         <div class="max-w-7xl mx-auto mt-6">
             <div class="w-full bg-white/30 rounded-full h-2">
-                <div class="bg-gradient-to-r from-[#DC5270] to-purple-400 h-2 rounded-full transition-all duration-500" style="width: {(currentStep / totalSteps) * 100}%"></div>
+                <div class="bg-gradient-to-r from-[#6DBDD5] to-purple-400 h-2 rounded-full transition-all duration-500" style="width: {(currentStep / totalSteps) * 100}%"></div>
             </div>
         </div>
     </header>
