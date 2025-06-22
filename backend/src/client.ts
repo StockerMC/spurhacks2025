@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { getAnalysisPrompt, Personality, getActionEvaluationPrompt, getSelectorFromAria } from '../lib/prompts';
-import { chromium, Browser, Page, BrowserContext } from 'playwright';
+import { chromium, Browser, Page, BrowserContext, ChromiumBrowser } from 'playwright';
 import { createAction, uploadProjectPhoto, uploadProjectVideo } from '../lib/databaseUtils';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -54,22 +54,22 @@ class Agent {
   public testHistory: TestIterationResult[] = [];
   private personality: Personality;
   private projectId: number;
+  private notes: string = '';
 
   constructor(personality: Personality, projectId: number) {
     this.personality = personality;
     this.projectId = projectId;
   }
 
-  async connect(url: string) {
-    console.log('Connecting to browser...');
-    this.browser = await chromium.launch({ headless: true });
+  async connect(browser: ChromiumBrowser, url: string) {
     console.log('Browser launched successfully');
     // Enable video recording to src/screenshots
+    this.browser = browser;
     this.context = await this.browser.newContext({
       recordVideo: { dir: 'src/screenshots', size: { width: 1280, height: 720 } }
     });
     this.page = await this.context.newPage();
-    await this.page.goto(url);
+    await this.page.goto(url, { waitUntil: 'domcontentloaded' });
     this.testHistory = [];
     return true;
   }
@@ -98,7 +98,7 @@ class Agent {
     const ariaSnapshot = await this.page.locator('body').ariaSnapshot();
     // Save screenshot if needed
     this.testHistory.push({ actions: [], screenshot: screenshotBuffer?.toString('base64'), timestamp: Date.now(), snapshot: JSON.stringify(ariaSnapshot) });
-    
+
 
     // Get page content
     // const textContent = await this.page.content();
@@ -202,7 +202,7 @@ class Agent {
           case 'take_screenshot':
             let screenshot;
             try {
-              screenshot = await this.page.screenshot({ fullPage: true });
+              screenshot = await this.page.screenshot({ fullPage: false });
               uploadProjectPhoto(screenshot, `screenshot-${Date.now()}.png`, this.projectId, this.personality);
             } catch (uploadError) {
               console.error('Failed to upload screenshot:', uploadError);
@@ -215,7 +215,7 @@ class Agent {
             console.log('📸 Screenshot captured and stored in history');
             break;
           case 'navigate':
-            if (action.url) await this.page.goto(action.url);
+            if (action.url) await this.page.goto(action.url, { waitUntil: 'domcontentloaded', timeout: action.timeout || 10000 });
             break;
           case 'snapshot':
             const snapshotContent = await this.page.locator('body').ariaSnapshot();
@@ -315,30 +315,32 @@ class Agent {
             config: llmConfig,
             contents: [{ role: 'user', parts: [{ text: evalPrompt }] }]
           });
+          let evalText = evalResponse?.text?.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
           let evaluation;
           try {
-            evaluation = evalResponse.text ? JSON.parse(evalResponse.text) : { status: 'unknown', explanation: 'No evaluation provided', issues: [] };
-            
+            evaluation = JSON.parse(evalText || '');
+
           } catch (e) {
+            console.error('❌ Failed to parse evaluation response:', evalText, e);
             // Try to extract JSON if wrapped in ```json ... ```
             const jsonBlockMatch = evalResponse.text?.match(/```json\s*([\s\S]*?)```/);
             if (jsonBlockMatch && jsonBlockMatch[1]) {
               try {
                 evaluation = JSON.parse(jsonBlockMatch[1]);
               } catch {
-                evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalResponse.text] };
+                evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalText] };
               }
             } else {
-              evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalResponse.text] };
+              evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalText] };
             }
-          }          console.log(`🔍 Action evaluation:`, evaluation);
-          
+          } console.log(`🔍 Action evaluation:`, evalText);
+
           // Log the action to the database
           try {
             const actionData = {
               agent: this.personality,
               changes: evaluation?.changes || [],
-              issues: [this.page?.url() || ''],
+              issues: evaluation?.issues || [],
               status: evaluation?.status || 'unknown',
               finalVerdict: evaluation?.verdict || 'unknown',
               finalSummary: evaluation?.explanation || 'No explanation provided',
@@ -346,7 +348,7 @@ class Agent {
               finalRecommendations: evaluation?.recommendations || [],
               project_id: this.projectId // Set this if you have a project ID context
             };
-            
+
             const savedAction = await createAction(actionData);
             console.log(`💾 Action logged to database with ID: ${savedAction?.id || 'unknown'}`);
           } catch (dbError) {
@@ -368,7 +370,7 @@ class Agent {
     // Take final screenshot and get content for this iteration
     let finalScreenshot: Buffer | null = null;
     try {
-      finalScreenshot = await this.page.screenshot({ fullPage: true });
+      finalScreenshot = await this.page.screenshot({ fullPage: false });
       uploadProjectPhoto(finalScreenshot, `screenshot-${Date.now()}.png`, this.projectId, this.personality);
     } catch (uploadError) {
       console.error('Failed to upload final screenshot:', uploadError);
@@ -395,7 +397,7 @@ class Agent {
         if (!fs.existsSync(destDir)) {
           fs.mkdirSync(destDir, { recursive: true });
         }
-        
+
         // TODO
         const destPath = path.join(destDir, `test-video-${Date.now()}.webm`);
         fs.copyFileSync(videoPath, destPath);
@@ -413,7 +415,7 @@ class Agent {
   }
 
   async disconnect() {
-    if (this.browser) await this.browser.close();
+    if (this.context) await this.context.close();
   }
 }
 

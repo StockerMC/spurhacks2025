@@ -288,6 +288,7 @@ ${afterSnapshot.substring(0, 1000)}${afterSnapshot.length > 1000 ? "..." : ""}
 
 Return your answer as JSON object without backticks just like the following— keep it CONCISE and focused:
 {
+  "title": "the action title, e.g. 'Click Submit Button'",
   "status": "success" | "partial" | "failure",
   "changes": ["Key change 1", "Key change 2"],
   "issues": ["Any issue spotted, or empty list"],

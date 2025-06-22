@@ -15,6 +15,13 @@
             goto("/dashboard");
         }, 1250);
     }
+
+    // Add keydown handler for Enter key
+    function handleKeydown(event: KeyboardEvent) {
+        if (event.key === "Enter") {
+            handleLogin();
+        }
+    }
 </script>
 
 <!-- svelte-ignore a11y_img_redundant_alt -->
@@ -38,10 +45,10 @@
             <a href="/" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
                 Home
             </a>
-            <a href="/about" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
+            <a href="/" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
                 About
             </a>
-            <a href="/pricing" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
+            <a href="/" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
                 Contact
             </a>
         </nav>
@@ -49,7 +56,7 @@
             <a href="/login" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
                 Log In
             </a>
-            <button class="border-2 py-2 border-amber-50 text-amber-50 hover:text-amber-200 rounded-full px-6">
+            <button class="cursor-pointer border-2 py-2 border-amber-50 text-amber-50 hover:text-amber-200 rounded-full px-6">
                 Sign Up
             </button>
         </div>
@@ -64,7 +71,7 @@
         <h1 class="text-3xl font-bold mb-2 text-[#DC5270]">Welcome Back</h1>
         <p class="text-gray-700 font-semibold">Log in to your Pawditor account</p>
       </div>
-      <form class="space-y-6" on:submit|preventDefault={handleLogin}>
+      <form class="space-y-6" on:submit|preventDefault={handleLogin} on:keydown={handleKeydown}>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2" for="email">
             Email Address

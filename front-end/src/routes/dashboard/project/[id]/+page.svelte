@@ -33,7 +33,8 @@
         totalTests: 0,
         issuesFound: 0,
         uptime: "",
-        estimatedCompletion: ""
+        estimatedCompletion: "",
+        notes: ""
     });
 
     const startTesting = async () => {
@@ -48,23 +49,27 @@
             // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate async operation
             // console.log(`${personality} test started.`);
             try {
-                const response = await fetch(`https://spurhacks2025-430215758629.us-central1.run.app/test`, {
+                // const response = await fetch(`https://spurhacks2025-430215758629.us-central1.run.app/test`, {
+                const response = await fetch('http://localhost:8080/test', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ personality, projectId, url: projectData.url })
+                    body: JSON.stringify({ projectId, url: projectData.url, notes: projectData.notes })
                 });
                 console.log(`Response from test start: ${await response.text()}`);
+                clearInterval(timeInterval);
             } catch (error) {
                 console.error(`Error starting test with ${personality} personality:`, error);
             }
         }
-        for (const personality of personalities) {
-            await testPersonality(personality);
-        }
+        await testPersonality('hacker');
+        // for (const personality of personalities) {
+        //     await testPersonality(personality);
+        // }
     }
 
+    let newActions = $state([]);
     // Fetch project data from Supabase on mount
     onMount(async () => {
         const { data, error } = await supabase
@@ -82,7 +87,8 @@
                 totalTests: data?.total_tests ?? 0,
                 issuesFound: data?.issues_found ?? 0,
                 uptime: data?.uptime ?? "",
-                estimatedCompletion: data?.estimated_completion ?? ""
+                estimatedCompletion: data?.estimated_completion ?? "",
+                notes: data?.notes ?? ""
             };
         }
 
@@ -99,16 +105,19 @@
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'actions', filter: `project_id=eq.${projectId}` },
                 (payload) => {
+                    console.log('Change received!', payload);
                     if (payload.eventType === 'INSERT') {
-                        agentInstances = [...agentInstances, payload.new];
+                        console.log('New action added:', payload.new);
+                        newActions.push(payload.new);
                     } else if (payload.eventType === 'UPDATE') {
-                        agentInstances = agentInstances.map(a => a.id === payload.new.id ? payload.new : a);
+                        newActions = newActions.map(a => a.id === payload.new.id ? payload.new : a);
                     } else if (payload.eventType === 'DELETE') {
-                        agentInstances = agentInstances.filter(a => a.id !== payload.old.id);
+                        newActions = newActions.filter(a => a.id !== payload.old.id);
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status)=>console.log(status))
+
         return () => {
             supabase.removeChannel(channel);
         };
@@ -250,40 +259,67 @@
 </script>
 
 <svelte:head>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    />
 </svelte:head>
 
 <!-- Background Effects -->
 <div class="fixed inset-0 overflow-hidden pointer-events-none">
-    <div class="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-300/40 to-purple-300/30 rounded-full blur-3xl"></div>
-    <div class="absolute top-40 right-20 w-80 h-80 bg-gradient-to-br from-pink-300/35 to-blue-300/25 rounded-full blur-3xl"></div>
-    <div class="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-purple-300/30 to-pink-300/35 rounded-full blur-3xl"></div>
+    <div
+        class="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-blue-300/40 to-purple-300/30 rounded-full blur-3xl"
+    ></div>
+    <div
+        class="absolute top-40 right-20 w-80 h-80 bg-gradient-to-br from-pink-300/35 to-blue-300/25 rounded-full blur-3xl"
+    ></div>
+    <div
+        class="absolute bottom-20 left-1/3 w-72 h-72 bg-gradient-to-br from-purple-300/30 to-pink-300/35 rounded-full blur-3xl"
+    ></div>
 </div>
 
-<div class="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100 font-inter flex">
+<div
+    class="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100 font-inter flex"
+>
     <!-- Sidebar -->
-    <aside class="bg-white/20 backdrop-blur-md border-r border-white/40 {sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 flex flex-col relative z-10">
+    <aside
+        class="bg-white/20 backdrop-blur-md border-r border-white/40 {sidebarCollapsed
+            ? 'w-16'
+            : 'w-64'} transition-all duration-300 flex flex-col relative z-10"
+    >
         <!-- Header -->
         <div class="p-4 border-b border-white/30">
             <div class="flex items-center justify-between">
                 {#if !sidebarCollapsed}
                     <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 border rounded-xl flex items-center justify-center">
-                            <img src={CatBox || "/placeholder.svg"} alt="Cat Box Logo" class="w-8 h-8"/>
+                        <div
+                            class="w-12 h-12 border rounded-xl flex items-center justify-center"
+                        >
+                            <img
+                                src={CatBox || "/placeholder.svg"}
+                                alt="Cat Box Logo"
+                                class="w-8 h-8"
+                            />
                         </div>
                         <div>
-                            <h1 class="font-semibold text-gray-900 text-sm">Testing Dashboard</h1>
-                            <p class="text-xs text-gray-600">Live Agent Control</p>
+                            <h1 class="font-semibold text-gray-900 text-sm">
+                                Testing Dashboard
+                            </h1>
+                            <p class="text-xs text-gray-600">
+                                Live Agent Control
+                            </p>
                         </div>
                     </div>
                 {/if}
                 <button
-                        class="p-1 hover:bg-white/20 rounded-md transition-colors"
-                        onclick={() => sidebarCollapsed = !sidebarCollapsed}
+                    class="p-1 hover:bg-white/20 rounded-md transition-colors"
+                    onclick={() => (sidebarCollapsed = !sidebarCollapsed)}
                 >
-                    <span class="text-gray-600">{sidebarCollapsed ? '→' : '←'}</span>
+                    <span class="text-gray-600"
+                        >{sidebarCollapsed ? "→" : "←"}</span
+                    >
                 </button>
             </div>
         </div>
@@ -294,14 +330,21 @@
                 {#each sidebarItems as item}
                     <li>
                         <button
-                                class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-left transition-all duration-200 {activeSection === item.id ? 'bg-white/30 text-[#6DBDD5] border border-white/40 shadow-lg' : 'text-gray-700 hover:bg-white/20'}"
-                                onclick={() => activeSection = item.id}
+                            class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl text-left transition-all duration-200 {activeSection ===
+                            item.id
+                                ? 'bg-white/30 text-[#6DBDD5] border border-white/40 shadow-lg'
+                                : 'text-gray-700 hover:bg-white/20'}"
+                            onclick={() => (activeSection = item.id)}
                         >
                             <span class="text-lg">{item.icon}</span>
                             {#if !sidebarCollapsed}
-                                <span class="font-medium text-sm flex-1">{item.label}</span>
+                                <span class="font-medium text-sm flex-1"
+                                    >{item.label}</span
+                                >
                                 {#if item.badge}
-                                    <span class="bg-white/30 text-gray-700 text-xs px-2 py-1 rounded-full font-medium border border-white/40">
+                                    <span
+                                        class="bg-white/30 text-gray-700 text-xs px-2 py-1 rounded-full font-medium border border-white/40"
+                                    >
                                         {item.badge}
                                     </span>
                                 {/if}
@@ -319,13 +362,13 @@
                     <Button variant="primary" size="sm" onclick={stopAllTests}>
                         Stop All Tests
                     </Button>
-                    <Button variant="outline" size="sm">
-                        Settings
-                    </Button>
+                    <Button variant="outline" size="sm">Settings</Button>
                 </div>
             {:else}
                 <div class="space-y-2">
-                    <Button variant="primary" size="sm" onclick={stopAllTests}>Stop</Button>
+                    <Button variant="primary" size="sm" onclick={stopAllTests}
+                        >Stop</Button
+                    >
                     <Button variant="outline" size="sm">Set</Button>
                 </div>
             {/if}
@@ -335,56 +378,66 @@
     <!-- Main Content -->
     <main class="flex-1 overflow-auto relative z-10">
         <!-- Top Bar -->
-        <header class="bg-white/20 backdrop-blur-md border-b border-white/40 px-6 py-4">
+        <header
+            class="bg-white/20 backdrop-blur-md border-b border-white/40 px-6 py-4"
+        >
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900">{projectData.name}</h2>
+                    <h2 class="text-2xl font-bold text-gray-900">
+                        {projectData.name}
+                    </h2>
                     <div class="flex items-center space-x-4 mt-1">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border {projectData.status === 'running' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}">
+                        <span
+                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border {projectData.status ===
+                            'running'
+                                ? 'bg-green-100 text-green-800 border-green-200'
+                                : 'bg-gray-100 text-gray-800 border-gray-200'}"
+                        >
                             {projectData.status.toUpperCase()}
                         </span>
                         {#if testingStarted}
-                            <span class="text-sm text-gray-600">Elapsed: {elapsedTime}</span>
+                            <span class="text-sm text-gray-600"
+                                >Elapsed: {elapsedTime}</span
+                            >
                         {/if}
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
                     <Button variant="outline" size="sm">Analytics</Button>
-                    <Button variant="outline" size="sm">Refresh</Button>
-                    <Button variant="primary" size="sm" onclick={() => activeSection = 'settings'}>Manage Agents</Button>
+                    <Button variant="outline" size="sm" onclick={() => goto('/dashboard')}>
+                        Dashboard
+                    </Button>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onclick={() => (activeSection = "settings")}
+                    >Manage Agents</Button>
                 </div>
             </div>
         </header>
 
         <!-- Content Area -->
         <div class="p-6">
-            {#if activeSection === 'overview'}
+            {#if activeSection === "overview"}
                 <Overview
-                        {testingStarted}
-                        {elapsedTime}
-                        {testResults}
-                        {agentInstances}
-                        {startTesting}
-                        {stopAllTests}
+                    {testingStarted}
+                    {elapsedTime}
+                    {testResults}
+                    {startTesting}
+                    {stopAllTests}
+                    agentInstances={newActions}
                 />
-            {:else if activeSection === 'live'}
-                <Live
-                        {agentInstances}
-                        bind:selectedAgent
-                />
-            {:else if activeSection === 'results'}
-                <Results
-                        {testResults}
-                />
-            {:else if activeSection === 'summary'}
-                <Summary
-                        {testResults}
-                />
-            {:else if activeSection === 'settings'}
+            {:else if activeSection === "live"}
+                <Live {agentInstances} bind:selectedAgent />
+            {:else if activeSection === "results"}
+                <Results {testResults} />
+            {:else if activeSection === "summary"}
+                <Summary {testResults} />
+            {:else if activeSection === "settings"}
                 <PersonaControl
-                        {personaConfig}
-                        {updatePersonaCount}
-                        {stopAllTests}
+                    {personaConfig}
+                    {updatePersonaCount}
+                    {stopAllTests}
                 />
             {/if}
         </div>
@@ -393,6 +446,12 @@
 
 <style>
     .font-inter {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family:
+            "Inter",
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            Roboto,
+            sans-serif;
     }
 </style>
