@@ -57,13 +57,17 @@
 
           <p class="text-2xl font-medium text-gray-800 max-w-md">
             We simulate your first 1,000 users so you can fix your bugs, UX, and vulnerabilities before they become real
-            problems
+            problems.
           </p>
 
           <a
-                  class="text-white rounded-full px-8 py-3 text-lg font-semibold"
-                  style="background-color: #DC5270;"
-                  href="/login"
+            class="text-white rounded-full px-10 py-4 text-xl font-semibold transition-all duration-200"
+            style="background-color: #DC5270;"
+            href="/login"
+            onmouseover={(event) => ((event.currentTarget as HTMLElement).style.backgroundColor = '#b13a56')}
+            onfocus={(event) => ((event.currentTarget as HTMLElement).style.backgroundColor = '#b13a56')}
+            onmouseout={(event) => ((event.currentTarget as HTMLElement).style.backgroundColor = '#DC5270')}
+            onblur={(event) => ((event.currentTarget as HTMLElement).style.backgroundColor = '#DC5270')}
           >
             GET STARTED
           </a>
