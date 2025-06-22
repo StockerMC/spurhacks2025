@@ -49,8 +49,8 @@
             // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate async operation
             // console.log(`${personality} test started.`);
             try {
-                // const response = await fetch(`https://spurhacks2025-430215758629.us-central1.run.app/test`, {
-                const response = await fetch('http://localhost:8080/test', {
+                const response = await fetch(`https://spurhacks2025-430215758629.us-central1.run.app/test`, {
+                // const response = await fetch('http://localhost:8080/test', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
