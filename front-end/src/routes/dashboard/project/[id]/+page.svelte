@@ -85,19 +85,37 @@
                 estimatedCompletion: data?.estimated_completion ?? ""
             };
         }
+
+        // Fetch agentInstances for this project
+        const { data: agentData, error: agentError } = await supabase
+            .from('actions')
+            .select('*')
+            .eq('project_id', projectId);
+        if (agentData) agentInstances = agentData;
+
+        // Subscribe to real-time changes for this project's actions
+        const channel = supabase.channel('actions-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'actions', filter: `project_id=eq.${projectId}` },
+                (payload) => {
+                    if (payload.eventType === 'INSERT') {
+                        agentInstances = [...agentInstances, payload.new];
+                    } else if (payload.eventType === 'UPDATE') {
+                        agentInstances = agentInstances.map(a => a.id === payload.new.id ? payload.new : a);
+                    } else if (payload.eventType === 'DELETE') {
+                        agentInstances = agentInstances.filter(a => a.id !== payload.old.id);
+                    }
+                }
+            )
+            .subscribe();
+        return () => {
+            supabase.removeChannel(channel);
+        };
     });
 
-    // Agent instances with unique IDs
-    let agentInstances = $state([
-        { id: "hack_001", name: "The Hacker", action: "Testing SQL injection on login form", status: "active", lastUpdate: "2s ago", hash: "a7f3d9e2" },
-        { id: "hack_002", name: "The Hacker", action: "Scanning for XSS vulnerabilities", status: "active", lastUpdate: "8s ago", hash: "b2e8c4f1" },
-        { id: "mobile_001", name: "Mobile Sarah", action: "Checking responsive design on checkout", status: "active", lastUpdate: "5s ago", hash: "c9d1a5b7" },
-        { id: "mobile_002", name: "Mobile Sarah", action: "Testing touch interactions", status: "active", lastUpdate: "12s ago", hash: "d4f7e2a9" },
-        { id: "grandpa_001", name: "Grandpa Joe", action: "Struggling with navigation menu", status: "confused", lastUpdate: "12s ago", hash: "e8b3f6c2" },
-        { id: "power_001", name: "Power User", action: "Stress testing search functionality", status: "active", lastUpdate: "8s ago", hash: "f1c5d8e4" },
-        { id: "power_002", name: "Power User", action: "Testing keyboard shortcuts", status: "active", lastUpdate: "15s ago", hash: "g6a2b9f3" },
-        { id: "power_003", name: "Power User", action: "Exploring advanced features", status: "active", lastUpdate: "3s ago", hash: "h3e7c1d5" }
-    ]);
+    // Agent instances: fetch from Supabase actions table for this project
+    let agentInstances = $state([]);
 
     // Persona configurations
     let personaConfig = $state({

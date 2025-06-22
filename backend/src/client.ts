@@ -79,8 +79,9 @@ class Agent {
     // Start video recording is handled by context
     // Take screenshot at the beginning
     // TODO FIGURE OUT IF FULL PAGE IS BETTER
-    const screenshotBuffer = await this.page.screenshot({ fullPage: false });
+    let screenshotBuffer: Buffer | null = null;
     try {
+      screenshotBuffer = await this.page.screenshot({ fullPage: false });
       uploadProjectPhoto(screenshotBuffer, `screenshot-${Date.now()}.png`, this.projectId, this.personality);
     } catch (uploadError) {
       console.error('Failed to upload screenshot:', uploadError);
@@ -96,7 +97,7 @@ class Agent {
     // // throw new Error('Screenshot saved to screenshots folder, but this is not supported yet.'); // TODO: remove this line when screenshot saving is implemented
     const ariaSnapshot = await this.page.locator('body').ariaSnapshot();
     // Save screenshot if needed
-    this.testHistory.push({ actions: [], screenshot: screenshotBuffer.toString('base64'), timestamp: Date.now(), snapshot: JSON.stringify(ariaSnapshot) });
+    this.testHistory.push({ actions: [], screenshot: screenshotBuffer?.toString('base64'), timestamp: Date.now(), snapshot: JSON.stringify(ariaSnapshot) });
     
 
     // Get page content
@@ -141,7 +142,7 @@ class Agent {
       config: llmConfig,
       contents: [
         { role: 'user', parts: [{ text: analysisPrompt }] },
-        { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] }
+        screenshotBuffer ? { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] } : {}
       ]
     });
     let actionPlan = response.text || '';
@@ -199,15 +200,16 @@ class Agent {
             break;
           case 'screenshot':
           case 'take_screenshot':
-            const screenshot = await this.page.screenshot({ fullPage: true });
+            let screenshot;
             try {
+              screenshot = await this.page.screenshot({ fullPage: true });
               uploadProjectPhoto(screenshot, `screenshot-${Date.now()}.png`, this.projectId, this.personality);
             } catch (uploadError) {
               console.error('Failed to upload screenshot:', uploadError);
             }
             this.testHistory.push({
               actions: [action],
-              screenshot: screenshot.toString('base64'),
+              screenshot: screenshot ? screenshot.toString('base64') : undefined,
               timestamp: Date.now()
             });
             console.log('📸 Screenshot captured and stored in history');
@@ -364,8 +366,13 @@ class Agent {
       actionResults.push({ ...action, result });
     }
     // Take final screenshot and get content for this iteration
-    const finalScreenshot = await this.page.screenshot({ fullPage: true });
-    uploadProjectPhoto(finalScreenshot, `screenshot-${Date.now()}.png`, this.projectId, this.personality);
+    let finalScreenshot: Buffer | null = null;
+    try {
+      finalScreenshot = await this.page.screenshot({ fullPage: true });
+      uploadProjectPhoto(finalScreenshot, `screenshot-${Date.now()}.png`, this.projectId, this.personality);
+    } catch (uploadError) {
+      console.error('Failed to upload final screenshot:', uploadError);
+    }
     const finalSnapshot = await this.page.locator('body').ariaSnapshot();
     const finaltextContent = await getVisibleText(this.page);
 
@@ -373,7 +380,7 @@ class Agent {
       actions: actionResults,
       textContent: finaltextContent,
       snapshot: JSON.stringify(finalSnapshot),
-      screenshot: finalScreenshot.toString('base64'),
+      screenshot: finalScreenshot?.toString('base64'),
       timestamp: Date.now()
     });
     console.log('📝 Test iteration completed and saved to history');

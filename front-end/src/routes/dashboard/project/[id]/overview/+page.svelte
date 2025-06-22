@@ -11,14 +11,25 @@
         stopAllTests: () => void;
     }
 
-    let { testingStarted, elapsedTime, testResults, agentInstances, startTesting, stopAllTests }: Props = $props();
+    let {
+        testingStarted,
+        elapsedTime,
+        testResults,
+        agentInstances,
+        startTesting,
+        stopAllTests,
+    }: Props = $props();
 
     const getVerdictColor = (verdict: string) => {
-        switch(verdict) {
-            case 'pass': return 'bg-green-100 text-green-800 border-green-200';
-            case 'partial': return 'bg-orange-100 text-orange-800 border-orange-200';
-            case 'fail': return 'bg-red-100 text-red-800 border-red-200';
-            default: return 'bg-gray-100 text-gray-800 border-gray-200';
+        switch (verdict) {
+            case "pass":
+                return "bg-green-100 text-green-800 border-green-200";
+            case "partial":
+                return "bg-orange-100 text-orange-800 border-orange-200";
+            case "fail":
+                return "bg-red-100 text-red-800 border-red-200";
+            default:
+                return "bg-gray-100 text-gray-800 border-gray-200";
         }
     };
 </script>
@@ -28,14 +39,22 @@
     <Card>
         <div class="text-center p-4">
             {#if !testingStarted}
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">START TESTING</h3>
-                <p class="text-gray-600 mb-6">Begin automated testing with AI agents</p>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    START TESTING
+                </h3>
+                <p class="text-gray-600 mb-6">
+                    Begin automated testing with AI agents
+                </p>
                 <Button variant="primary" onclick={startTesting}>
                     Start Testing
                 </Button>
             {:else}
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">TESTING IN PROGRESS</h3>
-                <div class="text-3xl font-bold text-[#6DBDD5] mb-2">{elapsedTime}</div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                    TESTING IN PROGRESS
+                </h3>
+                <div class="text-3xl font-bold text-[#6DBDD5] mb-2">
+                    {elapsedTime}
+                </div>
                 <div class="text-sm text-gray-500 mb-4">elapsed</div>
                 <Button variant="primary" onclick={stopAllTests}>
                     Stop Testing
@@ -55,13 +74,23 @@
                 <p class="text-gray-500 text-center py-4">No results yet</p>
             {:else}
                 {#each testResults.slice(0, 3) as result}
-                    <div class="flex items-start space-x-3 p-3 bg-white/30 rounded-xl border border-white/40">
-                        <span class="px-2 py-1 rounded-full text-xs font-medium {getVerdictColor(result.verdict)}">
+                    <div
+                        class="flex items-start space-x-3 p-3 bg-white/30 rounded-xl border border-white/40"
+                    >
+                        <span
+                            class="px-2 py-1 rounded-full text-xs font-medium {getVerdictColor(
+                                result.verdict,
+                            )}"
+                        >
                             {result.verdict.toUpperCase()}
                         </span>
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900">{result.agent} - {result.page}</p>
-                            <p class="text-xs text-gray-600">{result.summary}</p>
+                            <p class="text-sm font-medium text-gray-900">
+                                {result.agent} - {result.page}
+                            </p>
+                            <p class="text-xs text-gray-600">
+                                {result.summary}
+                            </p>
                         </div>
                     </div>
                 {/each}
@@ -72,16 +101,22 @@
     <!-- Agent Activity Card -->
     <Card>
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Agent Activity</h3>
-        <div class="space-y-3">
-            {#if testingStarted}
-                {#each agentInstances.slice(0, 4) as agent}
+        <div class="max-h-64 overflow-y-auto space-y-3 pr-2">
+            {#if testingStarted && agentInstances.length > 0}
+                {#each agentInstances as agent}
                     <div class="flex items-center space-x-3">
-                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <div
+                            class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
+                        ></div>
                         <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900">{agent.name} #{agent.hash}</p>
+                            <p class="text-sm font-medium text-gray-900">
+                                {agent.name} #{agent.hash}
+                            </p>
                             <p class="text-xs text-gray-600">{agent.action}</p>
                         </div>
-                        <span class="text-xs text-gray-500">{agent.lastUpdate}</span>
+                        <span class="text-xs text-gray-500"
+                            >{agent.lastUpdate}</span
+                        >
                     </div>
                 {/each}
             {:else}
