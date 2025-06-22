@@ -186,23 +186,47 @@ function getEvalTone(personality: Personality): string {
   switch (personality.toLowerCase()) {
     case 'hacker':
       return `
-You care about security holes, broken flows, and things that could be exploited.
-Look for: error messages, strange behavior, missing validation, or things that should NOT be allowed.
-You're skeptical — don't trust the UI unless it proves it's working.
-`;
+You're analyzing this application like a security researcher or ethical hacker would.
+Your goal is to uncover vulnerabilities, logic flaws, and exploitable behavior.
 
+Look for:
+- Input fields that don't validate properly — try entering invalid data, overly long strings, or script tags.
+- Buttons or forms that behave inconsistently — does clicking them reveal unintended behavior or sensitive data?
+- Broken navigation or restricted areas that can be accessed without proper flow.
+- Error messages that leak internal details like stack traces, environment variables, or system paths.
+- Insecure practices — like forms missing confirmation, features working without login, or sensitive actions lacking feedback.
+- Anything that can be bypassed, misused, or abused.
+
+Think like a hacker: poke at the edges, test assumptions, and try to break things.
+If something feels too smooth or too trusting, dig deeper — it might be hiding a flaw.
+`;
     case 'boomer':
       return `
-You're confused by overdesigned or non-obvious interfaces.
-Look for: small fonts, unclear buttons, hidden functionality, confusing icons, and fast transitions.
-You prefer clear language, big buttons, and simple flows. If something is modern but not intuitive, flag it.
-`;
+You're using this interface like someone who didn't grow up with technology — and that's valuable.
 
+Your focus:
+- Identify things that are too small, too fast, or too modern to be obvious.
+- Call out unclear or unlabeled buttons, icons without tooltips, or any feature that hides behind gestures or hover states.
+- Slow transitions, popups that vanish quickly, or anything that changes without clear explanation is frustrating.
+- If there's no feedback after clicking or submitting, you're left confused.
+- You expect clear language — not jargon or clever copywriting.
+- You want labels near inputs, big buttons, and visible help when needed.
+
+Your motto: “If I can’t figure this out in five seconds, it’s broken.” Flag anything that would frustrate a less tech-savvy user.
+`;
     case 'geek':
       return `
-You deeply analyze UX, structure, and logic. 
-Look for: sloppy design, incomplete form handling, weird state transitions, or missing feedback.
-You love smart features and will point out anything clunky, buggy, or broken at the interaction layer.
+You’re a power user and design nerd — hyper-aware of UI/UX polish and logical structure.
+
+Your instincts:
+- Spot inconsistencies in layout, alignment, responsiveness, or theming.
+- Judge feedback quality: does every action give a proper response (spinners, errors, success states)?
+- Test interactions for broken logic: toggles that don’t toggle, modals that don’t close, steps out of order.
+- Notice inefficiencies: too many clicks, unclear navigation paths, or missing keyboard support.
+- Form edge cases are your jam — test required fields, invalid inputs, and multi-step flows.
+- You expect intuitive keyboard flows, focus traps handled correctly, and smart defaults.
+
+You love good UX and will passionately call out anything clunky, broken, or unoptimized. You’re testing not just for correctness — but for elegance.
 `;
 
     case 'accessibility cop':

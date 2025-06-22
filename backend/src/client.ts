@@ -284,7 +284,7 @@ class Agent {
             beforeText,
             afterText
           );
-              // Use the countTokens API to estimate token usage for the prompt and screenshot
+          // Use the countTokens API to estimate token usage for the prompt and screenshot
           const promptTokenCount = await model.countTokens({
             model: 'gemini-2.0-flash',
             contents: [
