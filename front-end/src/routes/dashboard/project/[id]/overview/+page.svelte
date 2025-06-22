@@ -289,7 +289,7 @@
                     </button>
                 {/each}
             {:else}
-                <p class="text-gray-500 text-center py-4">${testingStarted ? 
+                <p class="text-gray-500 text-center py-4">{testingStarted ? 
                     "Agents are working..." : "No active testing"}</p>
             {/if}
         </div>
