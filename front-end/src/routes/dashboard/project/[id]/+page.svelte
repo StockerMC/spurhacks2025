@@ -36,7 +36,7 @@
         estimatedCompletion: ""
     });
 
-    const startTesting = () => {
+    const startTesting = async () => {
         console.log("Starting testing...");
         testingStarted = true;
         startTime = Date.now();
@@ -49,20 +49,22 @@
             // console.log(`${personality} test started.`);
             try {
                 const response = await fetch(`https://spurhacks2025-430215758629.us-central1.run.app/test`, {
+                // const response = await fetch('http://localhost:8080/test', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ personality, projectId, url: projectData.url })
+                    body: JSON.stringify({ projectId, url: projectData.url })
                 });
                 console.log(`Response from test start: ${await response.text()}`);
             } catch (error) {
                 console.error(`Error starting test with ${personality} personality:`, error);
             }
         }
-        for (const personality of personalities) {
-            testPersonality(personality);
-        }
+        await testPersonality('hacker');
+        // for (const personality of personalities) {
+        //     await testPersonality(personality);
+        // }
     }
 
     // Fetch project data from Supabase on mount

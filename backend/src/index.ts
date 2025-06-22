@@ -2,10 +2,11 @@ import { Elysia } from "elysia";
 import { Agent, llmConfig, model } from "./client";
 import { getSessionEvaluationPrompt, Personality } from "../lib/prompts";
 import { cors } from '@elysiajs/cors'
+import { chromium, ChromiumBrowser } from "playwright";
 
-async function runAgent(url: string, personality: Personality, projectId: number) {
+async function runAgent(browser: ChromiumBrowser, url: string, personality: Personality, projectId: number) {
     const agent = new Agent(personality, projectId);
-    await agent.connect(url);
+    await agent.connect(browser, url);
     let shouldContinue = true;
     let allActions: any[] = [];
     let iteration = 0;
@@ -49,20 +50,29 @@ async function runAgent(url: string, personality: Personality, projectId: number
     return { success: true, actions: allActions };
 }
 
-const app = new Elysia()
-  .use(cors()).listen(3000)
-  .get("/", () => "Hello Elysia")
-  .post("/test", async ({ body: { url, personality, projectId } }: { body: { url: string, personality: string, projectId: number } }) => {
-    if (!url || !personality || !projectId) {
-      return { error: "Missing required fields: url, personality, or projectId" };
-    }
-    if (!['hacker', 'boomer', 'geek', 'accessibility cop'].includes(personality)) {
-      return { error: "Invalid personality" };
-    }
+process.env.PW_TEST_SCREENSHOT_NO_FONTS_READY = "1";
 
-    await runAgent(url, personality as Personality, projectId);
+const app = new Elysia()
+  .use(cors()).listen(8080)
+  .get("/", () => "Hello Elysia")
+  .post("/test", async ({ body: { url, projectId } }: { body: { url: string, personality: string, projectId: number } }) => {
+    if (!url || !projectId) {
+      return { error: "Missing required fields: url or projectId" };
+    }
+    // if (!['hacker', 'boomer', 'geek', 'accessibility cop'].includes(personality)) {
+    //   return { error: "Invalid personality" };
+    // }
+
+    const personalities = ['hacker', 'boomer', 'geek', 'accessibility cop']
+    console.log('Connecting to browser...');
+    const browser = await chromium.launch({ headless: true });
+    const agentPromises = personalities.map(personality => {
+      console.log(`Running agent for personality: ${personality}`);
+      return runAgent(browser, url, personality as Personality, projectId);
+    });
+    await Promise.allSettled(agentPromises);
     
-    return { success: true, message: "Test started" };
+    return { success: true, message: "Test finished" };
   })
   .listen(8080);
 
