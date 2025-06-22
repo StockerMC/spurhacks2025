@@ -98,7 +98,7 @@ class Agent {
     const ariaSnapshot = await this.page.locator('body').ariaSnapshot();
     // Save screenshot if needed
     this.testHistory.push({ actions: [], screenshot: screenshotBuffer?.toString('base64'), timestamp: Date.now(), snapshot: JSON.stringify(ariaSnapshot) });
-    
+
 
     // Get page content
     // const textContent = await this.page.content();
@@ -315,30 +315,32 @@ class Agent {
             config: llmConfig,
             contents: [{ role: 'user', parts: [{ text: evalPrompt }] }]
           });
+          let evalText = evalResponse?.text?.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
           let evaluation;
           try {
-            evaluation = evalResponse.text ? JSON.parse(evalResponse.text) : { status: 'unknown', explanation: 'No evaluation provided', issues: [] };
-            
+            evaluation = JSON.parse(evalText || '');
+
           } catch (e) {
+            console.error('❌ Failed to parse evaluation response:', evalText, e);
             // Try to extract JSON if wrapped in ```json ... ```
             const jsonBlockMatch = evalResponse.text?.match(/```json\s*([\s\S]*?)```/);
             if (jsonBlockMatch && jsonBlockMatch[1]) {
               try {
                 evaluation = JSON.parse(jsonBlockMatch[1]);
               } catch {
-                evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalResponse.text] };
+                evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalText] };
               }
             } else {
-              evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalResponse.text] };
+              evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalText] };
             }
-          }          console.log(`🔍 Action evaluation:`, evaluation);
-          
+          } console.log(`🔍 Action evaluation:`, evalText);
+
           // Log the action to the database
           try {
             const actionData = {
               agent: this.personality,
               changes: evaluation?.changes || [],
-              issues: [this.page?.url() || ''],
+              issues: evaluation?.issues || [],
               status: evaluation?.status || 'unknown',
               finalVerdict: evaluation?.verdict || 'unknown',
               finalSummary: evaluation?.explanation || 'No explanation provided',
@@ -346,7 +348,7 @@ class Agent {
               finalRecommendations: evaluation?.recommendations || [],
               project_id: this.projectId // Set this if you have a project ID context
             };
-            
+
             const savedAction = await createAction(actionData);
             console.log(`💾 Action logged to database with ID: ${savedAction?.id || 'unknown'}`);
           } catch (dbError) {
@@ -395,7 +397,7 @@ class Agent {
         if (!fs.existsSync(destDir)) {
           fs.mkdirSync(destDir, { recursive: true });
         }
-        
+
         // TODO
         const destPath = path.join(destDir, `test-video-${Date.now()}.webm`);
         fs.copyFileSync(videoPath, destPath);

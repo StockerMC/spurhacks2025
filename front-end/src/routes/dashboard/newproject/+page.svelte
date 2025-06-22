@@ -147,7 +147,7 @@
         //   question: "is this actually useful?"
         // },
         {
-            name: "Accessibility Police",
+            name: "Accessibility Officer",
             description: "needs inclusive design",
             icon: "👓",
             color: "from-pink-400 to-pink-600",

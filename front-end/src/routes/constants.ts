@@ -42,7 +42,7 @@ export const profiles = [
     //   question: "is this actually useful?"
     // },
     {
-      name: "Accessibility Police",
+      name: "Accessibility Officer",
       description: "needs inclusive design",
       icon: AccessibilityAnna,
       color: "from-pink-400 to-pink-600",

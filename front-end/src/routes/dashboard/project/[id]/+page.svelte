@@ -49,8 +49,8 @@
             // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate async operation
             // console.log(`${personality} test started.`);
             try {
-                const response = await fetch(`https://spurhacks2025-430215758629.us-central1.run.app/test`, {
-                // const response = await fetch('http://localhost:8080/test', {
+                // const response = await fetch(`https://spurhacks2025-430215758629.us-central1.run.app/test`, {
+                const response = await fetch('http://localhost:8080/test', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -69,6 +69,7 @@
         // }
     }
 
+    let newActions = $state([]);
     // Fetch project data from Supabase on mount
     onMount(async () => {
         const { data, error } = await supabase
@@ -104,16 +105,19 @@
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'actions', filter: `project_id=eq.${projectId}` },
                 (payload) => {
+                    console.log('Change received!', payload);
                     if (payload.eventType === 'INSERT') {
-                        agentInstances = [...agentInstances, payload.new];
+                        console.log('New action added:', payload.new);
+                        newActions.push(payload.new);
                     } else if (payload.eventType === 'UPDATE') {
-                        agentInstances = agentInstances.map(a => a.id === payload.new.id ? payload.new : a);
+                        newActions = newActions.map(a => a.id === payload.new.id ? payload.new : a);
                     } else if (payload.eventType === 'DELETE') {
-                        agentInstances = agentInstances.filter(a => a.id !== payload.old.id);
+                        newActions = newActions.filter(a => a.id !== payload.old.id);
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status)=>console.log(status))
+
         return () => {
             supabase.removeChannel(channel);
         };
@@ -400,13 +404,14 @@
                 </div>
                 <div class="flex items-center space-x-3">
                     <Button variant="outline" size="sm">Analytics</Button>
-                    <Button variant="outline" size="sm">Refresh</Button>
+                    <Button variant="outline" size="sm" onclick={() => goto('/dashboard')}>
+                        Dashboard
+                    </Button>
                     <Button
                         variant="primary"
                         size="sm"
                         onclick={() => (activeSection = "settings")}
-                        >Manage Agents</Button
-                    >
+                    >Manage Agents</Button>
                 </div>
             </div>
         </header>
@@ -418,9 +423,9 @@
                     {testingStarted}
                     {elapsedTime}
                     {testResults}
-                    {agentInstances}
                     {startTesting}
                     {stopAllTests}
+                    agentInstances={newActions}
                 />
             {:else if activeSection === "live"}
                 <Live {agentInstances} bind:selectedAgent />

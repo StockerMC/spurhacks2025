@@ -16,9 +16,11 @@ async function runAgent(browser: ChromiumBrowser, url: string, personality: Pers
         textContent: notes,
       })
     }
+    console.log(`Starting session for personality: ${personality}`);
     while (shouldContinue && iteration < 5) {
       iteration++;
       const actions = await agent.performAction();
+      console.log(`Iteration ${iteration} actions:`, actions);
       allActions.push(actions);
       // console.log('Actions received:', actions);
       if (actions.some((a: any) => a.action === 'end_session')) {

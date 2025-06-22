@@ -7,12 +7,19 @@
         agentInstances: any[];
     }
 
+    const agentToHumanFriendlyName = (agent) => {
+        if (agent === 'geek') return 'Power User';
+        else if (agent === 'boomer') return 'Grandpa Joe';
+        else if (agent === 'accessibility cop') return 'Accessibility Officer';
+        else return 'The Hacker'
+    };
+
     let { selectedAgent = $bindable(), agentInstances }: Props = $props();
 
     const generateDockerLog = (agent) => {
         return [
             `[${new Date().toISOString()}] Starting agent container ${agent.id}`,
-            `[${new Date().toISOString()}] Loading persona: ${agent.name}`,
+            `[${new Date().toISOString()}] Loading persona: ${agentToHumanFriendlyName(agent.name)}`,
             `[${new Date().toISOString()}] Connecting to target: https://example.com`,
             `[${new Date().toISOString()}] Executing: ${agent.action}`,
             `[${new Date().toISOString()}] Status: ${agent.status}`,
@@ -30,10 +37,74 @@
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center space-x-3">
                 <Button variant="outline" size="sm" onclick={() => selectedAgent = null}>← Back</Button>
-                <h3 class="text-xl font-semibold text-gray-900">Container: {selectedAgent.name} #{selectedAgent.hash}</h3>
+                <h3 class="text-xl font-semibold text-gray-900">Container: {agentToHumanFriendlyName(selectedAgent.name)}</h3>
                 <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full border border-green-200">{selectedAgent.status}</span>
             </div>
             <Button variant="outline" size="sm">Stop Container</Button>
+        </div>
+
+        <!-- Descriptive Action Card -->
+        <div class="bg-white/90 rounded-xl shadow-lg border border-blue-100 p-6 mb-6">
+            <div class="flex items-center mb-2">
+                <span class="text-2xl mr-3">🧠</span>
+                <h4 class="text-lg font-bold text-blue-800 flex-1">{selectedAgent.title || 'Action Details'}</h4>
+                <span class="px-2 py-1 rounded-full text-xs font-semibold {selectedAgent.finalVerdict === 'fail' ? 'bg-red-100 text-red-700' : selectedAgent.finalVerdict === 'pass' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">
+                    {selectedAgent.finalVerdict ? selectedAgent.finalVerdict.toUpperCase() : selectedAgent.status}
+                </span>
+            </div>
+            <div class="text-gray-700 mb-2 text-sm">{selectedAgent.explanation}</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                <div>
+                    <div class="font-semibold text-gray-800 mb-1">Agent</div>
+                    <div class="text-gray-600">{selectedAgent.agent}</div>
+                </div>
+                <div>
+                    <div class="font-semibold text-gray-800 mb-1">Time</div>
+                    <div class="text-gray-600">
+                        {selectedAgent.created_at
+                            ? new Date(selectedAgent.created_at).toLocaleString()
+                            : 'N/A'}
+                    </div>
+                </div>
+            </div>
+            {#if selectedAgent.changes && selectedAgent.changes.length}
+                <div class="mb-2">
+                    <div class="font-semibold text-gray-800 mb-1">Steps/Changes</div>
+                    <ul class="list-disc list-inside text-gray-700 text-sm">
+                        {#each selectedAgent.changes as change}
+                            <li>{change}</li>
+                        {/each}
+                    </ul>
+                </div>
+            {/if}
+            {#if selectedAgent.issues && selectedAgent.issues.length}
+                <div class="mb-2">
+                    <div class="font-semibold text-red-700 mb-1">Issues Found</div>
+                    <ul class="list-disc list-inside text-red-700 text-sm">
+                        {#each selectedAgent.issues as issue}
+                            <li>{issue}</li>
+                        {/each}
+                    </ul>
+                </div>
+            {/if}
+            <!-- {#if selectedAgent.finalIssues}
+                <div class="mb-2">
+                    <div class="font-semibold text-red-700 mb-1">Final Issues</div>
+                    <div class="text-red-700 text-sm">{selectedAgent.finalIssues}</div>
+                </div>
+            {/if}
+            {#if selectedAgent.finalRecommendations}
+                <div class="mb-2">
+                    <div class="font-semibold text-blue-700 mb-1">Recommendations</div>
+                    <div class="text-blue-700 text-sm">{selectedAgent.finalRecommendations}</div>
+                </div>
+            {/if}
+            {#if selectedAgent.finalSummary}
+                <div class="mb-2">
+                    <div class="font-semibold text-gray-800 mb-1">Summary</div>
+                    <div class="text-gray-700 text-sm">{selectedAgent.finalSummary}</div>
+                </div>
+            {/if} -->
         </div>
 
         <div class="bg-black text-green-400 p-4 rounded-xl font-mono text-sm overflow-x-auto border border-gray-600">
@@ -76,7 +147,7 @@
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center space-x-3">
                             <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                            <span class="font-semibold text-gray-900">{agent.name} #{agent.hash}</span>
+                            <span class="font-semibold text-gray-900">{agentToHumanFriendlyName(agent.name)}</span>
                             <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200">{agent.status}</span>
                         </div>
                         <div class="flex items-center space-x-2">
