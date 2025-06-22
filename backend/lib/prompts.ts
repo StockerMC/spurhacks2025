@@ -85,7 +85,7 @@ Return a JSON array of specific, useful actions to:
 
 Available actions:
 - \`click\`, \`type\`, \`navigate\`, \`press\`, \`wait_for\`
-- \`snapshot\`, \`take_screenshot\`, \`set_viewport\`, \`assert\`, \`end_session\`
+- \`snapshot\`, \`take_screenshot\`, \`set_viewport\`, \`assert\`
 
 Each action object must include:
 - "action": the action type

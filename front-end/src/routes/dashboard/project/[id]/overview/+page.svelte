@@ -108,7 +108,7 @@
                                 action.status,
                             )}"
                         >
-                            {action.agent}
+                            {agentToHumanFriendlyName(action.agent)}
                         </span>
             <div class="flex-1">
               <p class="text-sm font-medium text-gray-900">

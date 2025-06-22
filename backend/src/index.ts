@@ -23,10 +23,10 @@ async function runAgent(browser: ChromiumBrowser, url: string, personality: Pers
       console.log(`Iteration ${iteration} actions:`, actions);
       allActions.push(actions);
       // console.log('Actions received:', actions);
-      if (actions.some((a: any) => a.action === 'end_session')) {
-        console.log('🛑 AI requested to end the session.');
-        shouldContinue = false;
-      }
+      // if (actions.some((a: any) => a.action === 'end_session')) {
+      //   console.log('🛑 AI requested to end the session.');
+      //   shouldContinue = false;
+      // }
     }
     await agent.disconnect();
     const finalTestHistory = agent.testHistory[agent.testHistory.length - 1];
