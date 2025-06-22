@@ -60,15 +60,19 @@ const app = new Elysia()
     try {
       const match = finalEvaluation.match(/```json\s*([\s\S]*?)\s*```/);
       if (match) {
-      parsedEvaluation = JSON.parse(match[1]);
-      console.log('Parsed Session Evaluation:', parsedEvaluation);
+        parsedEvaluation = JSON.parse(match[1]);
+        // upload to database
+        
+        console.log('Parsed Session Evaluation:', parsedEvaluation);
+        return { success: true, actions: allActions, evaluation: parsedEvaluation };
       } else {
-      console.log('No JSON block found in evaluation.');
+        console.log('No JSON block found in evaluation.');
       }
     } catch (e) {
       console.log('Failed to parse JSON from evaluation:', e);
+      return { success: false, actions: allActions, evaluation: parsedEvaluation, error: 'Failed to parse evaluation JSON' };
     }
-    return { success: true, actions: allActions };
+    // return { success: true, actions: allActions };
     // return { url,  };
   })
   .listen(8080);
