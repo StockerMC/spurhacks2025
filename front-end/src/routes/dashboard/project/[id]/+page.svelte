@@ -6,7 +6,6 @@
     import { createClient } from "@supabase/supabase-js";
     import { goto } from "$app/navigation";
     import { page } from '$app/state';
-
     // Import section components
     import Overview from './overview/+page.svelte';
     import Live from './live/+page.svelte';
@@ -14,8 +13,8 @@
     import Summary from './summary/+page.svelte';
     import PersonaControl from './persona/+page.svelte';
 
-    let slug = page.params.id;
-    console.log(slug);
+    let projectId = page.params.id;
+    console.log(projectId);
 
     let activeSection = $state('overview');
     let sidebarCollapsed = $state(false);
@@ -27,9 +26,65 @@
 
     // Simplified project data
     let projectData = $state({
-        name: "E-commerce Platform Test",
-        status: "ready",
-        uptime: "0m 0s"
+        name: "",
+        url: "",
+        status: "",
+        activeAgents: 0,
+        totalTests: 0,
+        issuesFound: 0,
+        uptime: "",
+        estimatedCompletion: ""
+    });
+
+    const startTesting = () => {
+        console.log("Starting testing...");
+        testingStarted = true;
+        startTime = Date.now();
+        projectData.status = "running";
+        const personalities = ['hacker', 'geek', 'accessibility cop', 'boomer'];
+        const testPersonality = async (personality: string) => {
+            // Simulate starting a test with the given personality
+            // console.log(`Starting test with ${personality} personality...`);
+            // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate async operation
+            // console.log(`${personality} test started.`);
+            try {
+                const response = await fetch(`https://spurhacks2025-430215758629.us-central1.run.app/test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ personality, projectId, url: projectData.url })
+                });
+                console.log(`Response from test start: ${await response.text()}`);
+            } catch (error) {
+                console.error(`Error starting test with ${personality} personality:`, error);
+            }
+        }
+        for (const personality of personalities) {
+            testPersonality(personality);
+        }
+    }
+
+    // Fetch project data from Supabase on mount
+    onMount(async () => {
+        const { data, error } = await supabase
+            .from("projects")
+            .select("*")
+            .eq("id", projectId)
+            .single();
+
+        if (data) {
+            projectData = {
+                name: data?.name,
+                url: data?.url,
+                status: data?.status,
+                activeAgents: data?.active_agents ?? 0,
+                totalTests: data?.total_tests ?? 0,
+                issuesFound: data?.issues_found ?? 0,
+                uptime: data?.uptime ?? "",
+                estimatedCompletion: data?.estimated_completion ?? ""
+            };
+        }
     });
 
     // Agent instances with unique IDs
@@ -100,19 +155,19 @@
         personaConfig[persona].active = newCount > 0;
     };
 
-    const startTesting = () => {
-        testingStarted = true;
-        startTime = Date.now();
-        projectData.status = "running";
+    // const startTesting = () => {
+        // testingStarted = true;
+        // startTime = Date.now();
+        // projectData.status = "running";
 
-        // Start some default agents
-        personaConfig["The Hacker"].count = 2;
-        personaConfig["The Hacker"].active = true;
-        personaConfig["Mobile Sarah"].count = 2;
-        personaConfig["Mobile Sarah"].active = true;
-        personaConfig["Power User"].count = 1;
-        personaConfig["Power User"].active = true;
-    };
+    //     // Start some default agents
+    //     personaConfig["The Hacker"].count = 2;
+    //     personaConfig["The Hacker"].active = true;
+    //     personaConfig["Mobile Sarah"].count = 2;
+    //     personaConfig["Mobile Sarah"].active = true;
+    //     personaConfig["Power User"].count = 1;
+    //     personaConfig["Power User"].active = true;
+    // };
 
     const stopAllTests = () => {
         testingStarted = false;
@@ -284,6 +339,31 @@
         </header>
 
         <!-- Content Area -->
+        <div class="p-6">
+            {#if activeSection === 'overview'}
+                <!-- Testing Status Card - Full Width -->
+                <div class="mb-6">
+                    <Card>
+                        <div class="text-center p-4">
+                            {#if !testingStarted}
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 hover:cursor-pointer">START TESTING</h3>
+                                <p class="text-gray-600 mb-6">Begin automated testing with AI agents</p>
+                                <Button variant="primary" onclick={startTesting}>
+                                    Start Testing
+                                </Button>
+                            {:else}
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">TESTING IN PROGRESS</h3>
+                                <div class="text-3xl font-bold text-[#6DBDD5] mb-2">{elapsedTime}</div>
+                                <div class="text-sm text-gray-500 mb-4">elapsed</div>
+                                <Button variant="primary" onclick={stopAllTests}>
+                                    Stop Testing
+                                </Button>
+                            {/if}
+                        </div>
+                    </Card>
+                </div>
+
+                <!-- Content Area -->
         <div class="p-6">
             {#if activeSection === 'overview'}
                 <Overview
