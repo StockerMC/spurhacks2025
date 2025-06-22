@@ -36,7 +36,7 @@
         estimatedCompletion: ""
     });
 
-    const startTesting = () => {
+    const startTesting = async () => {
         console.log("Starting testing...");
         testingStarted = true;
         startTime = Date.now();
@@ -61,7 +61,7 @@
             }
         }
         for (const personality of personalities) {
-            testPersonality(personality);
+            await testPersonality(personality);
         }
     }
 
