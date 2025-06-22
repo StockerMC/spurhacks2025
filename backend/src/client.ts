@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { getAnalysisPrompt, Personality, getActionEvaluationPrompt, getSelectorFromAria } from '../lib/prompts';
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
-import { createAction } from '../lib/databaseUtils';
+import { createAction, uploadProjectPhoto, uploadProjectVideo } from '../lib/databaseUtils';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -80,6 +80,11 @@ class Agent {
     // Take screenshot at the beginning
     // TODO FIGURE OUT IF FULL PAGE IS BETTER
     const screenshotBuffer = await this.page.screenshot({ fullPage: false });
+    try {
+      uploadProjectPhoto(screenshotBuffer, `screenshot-${Date.now()}.png`, this.projectId, this.personality);
+    } catch (uploadError) {
+      console.error('Failed to upload screenshot:', uploadError);
+    }
     // Save screenshot to screenshots folder
     // const screenshotsDir = path.resolve('src/screenshots');
     // if (!fs.existsSync(screenshotsDir)) {
@@ -195,6 +200,11 @@ class Agent {
           case 'screenshot':
           case 'take_screenshot':
             const screenshot = await this.page.screenshot({ fullPage: true });
+            try {
+              uploadProjectPhoto(screenshot, `screenshot-${Date.now()}.png`, this.projectId, this.personality);
+            } catch (uploadError) {
+              console.error('Failed to upload screenshot:', uploadError);
+            }
             this.testHistory.push({
               actions: [action],
               screenshot: screenshot.toString('base64'),
@@ -355,6 +365,7 @@ class Agent {
     }
     // Take final screenshot and get content for this iteration
     const finalScreenshot = await this.page.screenshot({ fullPage: true });
+    uploadProjectPhoto(finalScreenshot, `screenshot-${Date.now()}.png`, this.projectId, this.personality);
     const finalSnapshot = await this.page.locator('body').ariaSnapshot();
     const finaltextContent = await getVisibleText(this.page);
 
@@ -377,9 +388,16 @@ class Agent {
         if (!fs.existsSync(destDir)) {
           fs.mkdirSync(destDir, { recursive: true });
         }
+        
         // TODO
-        // const destPath = path.join(destDir, `test-video-${Date.now()}.webm`);
-        // fs.copyFileSync(videoPath, destPath);
+        const destPath = path.join(destDir, `test-video-${Date.now()}.webm`);
+        fs.copyFileSync(videoPath, destPath);
+        // Optionally delete the original video file
+        try {
+          uploadProjectVideo(fs.readFileSync(destPath), `test-video-${Date.now()}.webm`, this.projectId, this.personality);
+        } catch (uploadError) {
+          console.error('Failed to upload video:', uploadError);
+        }
         // console.log(`🎥 Video saved to ${destPath}`);
       }
     }
