@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { getAnalysisPrompt, Personality, getActionEvaluationPrompt, getSelectorFromAria } from '../lib/prompts';
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
+import { createAction } from '../lib/databaseUtils';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -89,6 +90,7 @@ class Agent {
     const ariaSnapshot = await this.page.locator('body').ariaSnapshot();
     // Save screenshot if needed
     this.testHistory.push({ actions: [], screenshot: screenshotBuffer.toString('base64'), timestamp: Date.now(), snapshot: JSON.stringify(ariaSnapshot) });
+    
 
     // Get page content
     // const textContent = await this.page.content();
@@ -301,6 +303,7 @@ class Agent {
           let evaluation;
           try {
             evaluation = evalResponse.text ? JSON.parse(evalResponse.text) : { status: 'unknown', explanation: 'No evaluation provided', issues: [] };
+            
           } catch (e) {
             // Try to extract JSON if wrapped in ```json ... ```
             const jsonBlockMatch = evalResponse.text?.match(/```json\s*([\s\S]*?)```/);
@@ -313,8 +316,27 @@ class Agent {
             } else {
               evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalResponse.text] };
             }
+          }          console.log(`🔍 Action evaluation:`, evaluation);
+          
+          // Log the action to the database
+          try {
+            const actionData = {
+              agent: this.personality,
+              changes: [JSON.stringify(action)],
+              issues: [this.page?.url() || ''],
+              status: evaluation?.status || 'unknown',
+              finalVerdict: evaluation?.verdict || 'unknown',
+              finalSummary: evaluation?.explanation || 'No explanation provided',
+              finalIssues: JSON.stringify(evaluation?.issues || []),
+              finalRecommendations: JSON.stringify(evaluation?.recommendations || []),
+              project_id: null // Set this if you have a project ID context
+            };
+            
+            const savedAction = await createAction(actionData);
+            console.log(`💾 Action logged to database with ID: ${savedAction?.id || 'unknown'}`);
+          } catch (dbError) {
+            console.error('Failed to log action to database:', dbError);
           }
-          console.log(`🔍 Action evaluation:`, evaluation);
         })();
       } catch (actionError) {
         console.error(`❌ Action failed: ${action.description}`, actionError);
