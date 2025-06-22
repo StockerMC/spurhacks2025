@@ -69,7 +69,7 @@ async function runAgent(browser: ChromiumBrowser, url: string, personality: Pers
         created_at: new Date().toISOString(),
         finalVerdict: finalObject.verdict || 'No verdict provided',
         finalIssues: finalObject.issues || [],
-        finalSuggestions: finalObject.suggestions || [],
+        finalRecommendations: finalObject.recommendations || [],
         finalSummary: finalObject.summary || '',
       });
     let finalEvaluation = response.text;

@@ -188,7 +188,7 @@ class Agent {
         switch (actionType) {
           case 'click':
             if (action.selector) {
-              await this.page.click(action.selector, { timeout: action.timeout || 5000 });
+              await this.page.click(action.selector, { timeout: action.timeout || 5000 , force: true });
             }
             break;
           case 'type':
@@ -274,6 +274,11 @@ class Agent {
               result = { status: 'success', message: 'Scrolled to bottom of the page' };
             }
             break;
+          case 'scroll_half_height_down':
+            await this.page.evaluate(() => {
+              const halfHeight = window.innerHeight / 2;
+              window.scrollBy(0, halfHeight);
+            });
           case 'set_viewport':
             // how to avoid issues for this reason: page.setViewportSize(viewportSize) will resize the page. A lot of websites don't expect phones to change size, so you should set the viewport size before navigating to the page. page.setViewportSize(viewportSize) will also reset screen size, use browser.newContext([options]) with screen and viewport parameters if you need better control of these properties.
             if (action.width && action.height) {
@@ -335,6 +340,7 @@ class Agent {
             }
           } console.log(`🔍 Action evaluation:`, evalText);
 
+          console.log(`🔍 Evaluation result:`, evaluation);
           // Log the action to the database
           try {
             const actionData = {
