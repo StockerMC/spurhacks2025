@@ -44,18 +44,37 @@ export const createAction = async (action: Action) => {
 export const uploadProjectPhoto = async (
   file: File | Blob | Buffer,
   filename: string,
-  projectId: string,
+  projectId: number,
   personality: string
 ) => {
   const path = `${SUPABASE_PROJECT_ID}/${projectId}/${personality}/photos/${filename}`;
   const { data, error } = await supabase.storage
-    .from('project-media')
+    .from('media')
     .upload(path, file, { upsert: true, contentType: 'image/png' });
   if (error) {
     console.error('Error uploading photo:', error);
     return null;
   }
-  return supabase.storage.from('project-media').getPublicUrl(path).data.publicUrl;
+  const url = supabase.storage.from('media').getPublicUrl(path).data.publicUrl;
+  const { data: mediaData, error: mediaError } = await supabase
+    .from('media')
+    .insert({
+      project_id: projectId,
+      personality,
+      type: 'photo',
+      url,
+      filename,
+      created_at: new Date().toISOString()
+    })
+    .select()
+    .single();
+
+  if (mediaError) {
+    console.error('Error inserting media record:', mediaError);
+    return null;
+  }
+
+  return url;
 //   const { data: updateData, error: updateError } = await supabase
 //     .from('media')
 
@@ -71,16 +90,28 @@ export const uploadProjectPhoto = async (
 export const uploadProjectVideo = async (
   file: File | Blob | Buffer,
   filename: string,
-  projectId: string,
+  projectId: number,
   personality: string
 ) => {
   const path = `${SUPABASE_PROJECT_ID}/${projectId}/${personality}/videos/${filename}`;
   const { data, error } = await supabase.storage
-    .from('project-media')
+    .from('media')
     .upload(path, file, { upsert: true, contentType: 'video/webm' });
   if (error) {
     console.error('Error uploading video:', error);
     return null;
   }
-  return supabase.storage.from('project-media').getPublicUrl(path).data.publicUrl;
+  const url = supabase.storage.from('media').getPublicUrl(path).data.publicUrl;
+  const { data: mediaData, error: mediaError } = await supabase
+    .from('media')
+    .insert({
+      project_id: projectId,
+      personality,
+      type: 'video',
+      url,
+      filename,
+      created_at: new Date().toISOString()
+    })
+    .select()
+    .single();
 };
