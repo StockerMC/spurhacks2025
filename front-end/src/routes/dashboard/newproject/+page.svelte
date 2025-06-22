@@ -101,31 +101,6 @@
         }
     ];
 
-    const commonPages = [
-        "Homepage",
-        "Login/Signup",
-        "Product Pages",
-        "Checkout/Payment",
-        "User Dashboard",
-        "Contact/Support",
-        "About Us",
-        "Search Results",
-        "Blog/News"
-    ];
-
-    const testCategories = [
-        "Cross-browser compatibility",
-        "Mobile responsiveness",
-        "Form validation",
-        "Payment processing",
-        "User authentication",
-        "Search functionality",
-        "Navigation flow",
-        "Error handling",
-        "Data security",
-        "Performance optimization"
-    ];
-
     const profiles = [
         { name: "The Hacker", description: "finds every vulnerability", icon: "🔒", color: "from-red-400 to-red-600", question: "what if I try to break this?" },
         { name: "Grandpa Joe", description: "represents confused users", icon: "👴", color: "from-blue-400 to-blue-600", question: "how do I even use this?" },
@@ -454,58 +429,8 @@
                         </Card>
                     {/if}
 
-                    <!-- Step 3: Pages to Test -->
-                    {#if currentStep === 3}
-                        <Card>
-                            <div class="text-center mb-8">
-                                <h2 class="text-3xl font-bold text-gray-900 mb-4">Which pages should we test?</h2>
-                                <p class="text-gray-600">Select the pages you want our agents to focus on</p>
-                            </div>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                                {#each commonPages as page}
-                                    <button class="p-3 rounded-xl border-2 transition-all hover:border-blue-500 hover:shadow-md hover:bg-blue-50 {selectedPages.includes(page) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white/60'}" onclick={() => toggleSelection(selectedPages, page)}>
-                                        <span class="text-sm font-medium">{page}</span>
-                                    </button>
-                                {/each}
-                            </div>
-                            <div>
-                                <label for="custom-pages" class="block text-sm font-medium text-gray-700 mb-2">Additional Pages (optional)</label>
-                                <textarea bind:value={customPages} id="custom-pages" placeholder="List any specific pages or URLs you want tested..." class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 h-24"></textarea>
-                            </div>
-                            <div class="flex justify-between mt-8">
-                                <Button variant="outline" onclick={prevStep}>← Back</Button>
-                                <Button variant="primary" onclick={nextStep} disabled={selectedPages.length === 0}>Continue →</Button>
-                            </div>
-                        </Card>
-                    {/if}
-
-                    <!-- Step 4: Specific Tests -->
-                    {#if currentStep === 4}
-                        <Card>
-                            <div class="text-center mb-8">
-                                <h2 class="text-3xl font-bold text-gray-900 mb-4">What specifically should we test?</h2>
-                                <p class="text-gray-600">Choose the areas you want our agents to focus on</p>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                                {#each testCategories as test}
-                                    <button class="p-4 rounded-xl border-2 transition-all text-left hover:border-blue-500 hover:shadow-md hover:bg-blue-50 {specificTests.includes(test) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white/60'}" onclick={() => toggleSelection(specificTests, test)}>
-                                        <span class="text-sm font-medium">{test}</span>
-                                    </button>
-                                {/each}
-                            </div>
-                            <div>
-                                <label for="custom-tests" class="block text-sm font-medium text-gray-700 mb-2">Custom Testing Requirements</label>
-                                <textarea bind:value={customTests} id="custom-tests" placeholder="Describe any specific functionality, edge cases, or scenarios you want tested..." class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 h-32"></textarea>
-                            </div>
-                            <div class="flex justify-between mt-8">
-                                <Button variant="outline" onclick={prevStep}>← Back</Button>
-                                <Button variant="primary" onclick={nextStep} disabled={specificTests.length === 0}>Continue →</Button>
-                            </div>
-                        </Card>
-                    {/if}
-
                     <!-- Step 5: Agent Selection -->
-                    {#if currentStep === 5}
+                    {#if currentStep === 3}
                         <Card>
                             <div class="text-center mb-8">
                                 <h2 class="text-3xl font-bold text-gray-900 mb-4">Choose your testing agents</h2>
@@ -558,7 +483,7 @@
                     {/if}
 
                     <!-- Step 6: Final Review -->
-                    {#if currentStep === 6}
+                    {#if currentStep === 4}
                         <Card>
                             <div class="text-center mb-8">
                                 <h2 class="text-3xl font-bold text-gray-900 mb-4">Ready to launch your tests?</h2>
