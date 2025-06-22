@@ -3,6 +3,7 @@
     import Card from '$lib/components/Card.svelte';
     import CharacterCard from "$lib/components/CharacterCard.svelte";
     import Button from '$lib/components/Button.svelte';
+    import CatBox from "$lib/images/cat_box.png";
 
     let currentStep = $state(1);
     let totalSteps = 6;
@@ -157,11 +158,11 @@
     <header class="relative z-10 px-6 py-4">
         <div class="max-w-4xl mx-auto flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                    <span class="text-white font-bold text-lg">LT</span>
+                <div class="w-12 h-12 border rounded-xl flex items-center justify-center">
+                    <img src={CatBox} alt="Cat Box Logo" class="w-8 h-8"/>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-gray-900">New Testing Project</h1>
+                    <h1 class="text-xl font-bold text-gray-900">New Project</h1>
                     <p class="text-sm text-gray-600">Step {currentStep} of {totalSteps}</p>
                 </div>
             </div>
@@ -175,7 +176,7 @@
         <div class="max-w-4xl mx-auto mt-6">
             <div class="w-full bg-white/30 rounded-full h-2">
                 <div
-                        class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                        class="bg-gradient-to-r from-[#DC5270] to-purple-400 h-2 rounded-full transition-all duration-500"
                         style="width: {(currentStep / totalSteps) * 100}%"
                 ></div>
             </div>
