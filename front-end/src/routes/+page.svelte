@@ -81,7 +81,7 @@
       <a href="/about" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
         About
       </a>
-      <a href="/pricing" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+      <a href="/pricing" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
         Contact
       </a>
     </nav>

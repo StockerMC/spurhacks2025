@@ -129,7 +129,6 @@
         </div>
       </form>
     </Card>
-  {/if}
 </div>
 
 <!-- Footer -->
