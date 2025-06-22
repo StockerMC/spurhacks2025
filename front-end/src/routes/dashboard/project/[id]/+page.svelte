@@ -171,7 +171,7 @@
         { id: "overview", label: "Project Overview", icon: "", badge: null },
         { id: "live", label: "Live Updates", icon: "", badge: null },
         { id: "results", label: "Screenshots", icon: "", badge: null },
-        // { id: 'summary', label: 'Summary', icon: '', badge: null },
+        { id: 'summary', label: 'Summary', icon: '', badge: null },
         { id: "settings", label: "Agent Control", icon: "", badge: null }
     ];
 
