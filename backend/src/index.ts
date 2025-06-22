@@ -4,12 +4,18 @@ import { getSessionEvaluationPrompt, Personality } from "../lib/prompts";
 import { cors } from '@elysiajs/cors'
 import { chromium, ChromiumBrowser } from "playwright";
 
-async function runAgent(browser: ChromiumBrowser, url: string, personality: Personality, projectId: number) {
+async function runAgent(browser: ChromiumBrowser, url: string, personality: Personality, projectId: number, notes: string) {
     const agent = new Agent(personality, projectId);
     await agent.connect(browser, url);
     let shouldContinue = true;
     let allActions: any[] = [];
     let iteration = 0;
+    if (notes) {
+      agent.testHistory.push({
+        actions: [{ action: 'notes', description: 'User provided notes for the session.' }],
+        textContent: notes,
+      })
+    }
     while (shouldContinue && iteration < 5) {
       iteration++;
       const actions = await agent.performAction();
@@ -55,7 +61,7 @@ process.env.PW_TEST_SCREENSHOT_NO_FONTS_READY = "1";
 const app = new Elysia()
   .use(cors()).listen(8080)
   .get("/", () => "Hello Elysia")
-  .post("/test", async ({ body: { url, projectId } }: { body: { url: string, personality: string, projectId: number } }) => {
+  .post("/test", async ({ body: { url, projectId, notes } }: { body: { url: string, notes: string, projectId: number } }) => {
     if (!url || !projectId) {
       return { error: "Missing required fields: url or projectId" };
     }
@@ -68,7 +74,7 @@ const app = new Elysia()
     const browser = await chromium.launch({ headless: true });
     const agentPromises = personalities.map(personality => {
       console.log(`Running agent for personality: ${personality}`);
-      return runAgent(browser, url, personality as Personality, projectId);
+      return runAgent(browser, url, personality as Personality, projectId, notes);
     });
     await Promise.allSettled(agentPromises);
     

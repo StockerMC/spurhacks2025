@@ -54,6 +54,7 @@ class Agent {
   public testHistory: TestIterationResult[] = [];
   private personality: Personality;
   private projectId: number;
+  private notes: string = '';
 
   constructor(personality: Personality, projectId: number) {
     this.personality = personality;
