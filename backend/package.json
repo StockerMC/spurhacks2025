@@ -12,9 +12,11 @@
   },
   "dependencies": {
     "@elysiajs/websocket": "^0.2.8",
+    "@google/genai": "^1.6.0",
     "@google/generative-ai": "^0.17.1",
     "@modelcontextprotocol/sdk": "^1.13.0",
     "@playwright/mcp": "^0.0.29",
+    "@supabase/supabase-js": "^2.50.0",
     "elysia": "latest",
     "playwright": "^1.53.1"
   },

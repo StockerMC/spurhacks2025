@@ -24,6 +24,7 @@
 		"vite-plugin-devtools-json": "^0.2.0"
 	},
 	"dependencies": {
+		"@fontsource-variable/figtree": "^5.2.8",
 		"@tailwindcss/language-server": "^0.14.23"
 	}
 }

@@ -1,15 +1,29 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getAnalysisPrompt, Personality, getActionEvaluationPrompt } from '../lib/prompts';
+import { GoogleGenAI } from '@google/genai';
+import { getAnalysisPrompt, Personality, getActionEvaluationPrompt, getSelectorFromAria } from '../lib/prompts';
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
+import { createAction } from '../lib/databaseUtils';
+import * as path from 'path';
+import * as fs from 'fs';
 
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-export const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+const ai = new GoogleGenAI({
+  vertexai: true,
+  project: process.env.GOOGLE_CLOUD_PROJECT, // Replace with your Google Cloud project ID
+  location: 'us-central1',
+});
+ai
+export const model = ai.models;
+export const llmConfig = {
+  temperature: 0.2,
+  topP: 0.2,
+  topK: 20
+};
 
 // Interface for test actions
 interface TestAction {
   action: string;
-  selector?: string;
+  rawSelector?: { role: string; name?: string }; // raw selector for aria snapshot
+  selector?: string; // selector can be an object or a string
   text?: string;
   url?: string;
   description: string;
@@ -39,9 +53,11 @@ class Agent {
   private page: Page | null = null;
   public testHistory: TestIterationResult[] = [];
   private personality: Personality;
+  private projectId: string;
 
-  constructor(personality: Personality) {
+  constructor(personality: Personality, projectId: string) {
     this.personality = personality;
+    this.projectId = projectId;
   }
 
   async connect(url: string) {
@@ -62,33 +78,29 @@ class Agent {
     if (!this.page) throw new Error('Page not initialized');
     // Start video recording is handled by context
     // Take screenshot at the beginning
-    const screenshotBuffer = await this.page.screenshot({ fullPage: true });
+    // TODO FIGURE OUT IF FULL PAGE IS BETTER
+    const screenshotBuffer = await this.page.screenshot({ fullPage: false });
+    // Save screenshot to screenshots folder
+    // const screenshotsDir = path.resolve('src/screenshots');
+    // if (!fs.existsSync(screenshotsDir)) {
+    //   fs.mkdirSync(screenshotsDir, { recursive: true });
+    // }
+    // const screenshotPath = path.join(screenshotsDir, `screenshot-${Date.now()}.png`);
+    // fs.writeFileSync(screenshotPath, screenshotBuffer);
+    // console.log(`📸 Screenshot saved to ${screenshotPath}`);
+    // // throw new Error('Screenshot saved to screenshots folder, but this is not supported yet.'); // TODO: remove this line when screenshot saving is implemented
     const ariaSnapshot = await this.page.locator('body').ariaSnapshot();
     // Save screenshot if needed
     this.testHistory.push({ actions: [], screenshot: screenshotBuffer.toString('base64'), timestamp: Date.now(), snapshot: JSON.stringify(ariaSnapshot) });
+    
 
     // Get page content
     // const textContent = await this.page.content();
     let historyContext = '';
     if (this.testHistory.length > 0) {
-      historyContext = `\nPrevious test iterations:\n${this.testHistory.map((iter, index) => {
-        let iterationInfo = `Iteration ${index + 1}:\n`;
-        iterationInfo += `Actions tried: ${JSON.stringify(iter.actions)}\n`;
-
-        // Add page content context if available
-        if (iter.textContent) {
-          // Truncate page content if too long
-          const contentPreview = iter.textContent.length > 500
-            ? iter.textContent.substring(0, 500) + '...'
-            : iter.textContent;
-          iterationInfo += `Page content: ${contentPreview}\n`;
-        }
-
-        // Add timestamp if available
-        if (iter.timestamp) {
-          iterationInfo += `Time: ${new Date(iter.timestamp).toLocaleTimeString()}\n`;
-        }
-
+      historyContext = `\nPrevious tests:\n${this.testHistory.map((iter, index) => {
+        let iterationInfo = `${index + 1}:\n`;
+        iterationInfo += `Actions tried: ${JSON.stringify(iter.actions).replace(' +', ' ')}\n`;
         return iterationInfo;
       }).join('\n')}`;
     }
@@ -97,23 +109,37 @@ class Agent {
 
     const analysisPrompt = getAnalysisPrompt(
       this.personality,
-      textContent,
-      historyContext,
+      textContent.replace(' +', ' '),
+      historyContext.replace(' +', ' '),
       true,
       true,
-      JSON.stringify(ariaSnapshot)
+      JSON.stringify(ariaSnapshot).replace(' +', ' ')
     );
 
-    console.log(analysisPrompt);
+    // Use the countTokens API to estimate token usage for the prompt and screenshot
+    // const promptTokenCount = await model.countTokens({
+    //   model: 'gemini-2.0-flash',
+    //   contents: [
+    //     { role: 'user', parts: [{ text: analysisPrompt }] },
+    //     { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] }
+    //   ]
+    // });
+    // console.log(`🔢 Estimated tokens for prompt + screenshot:`, promptTokenCount.totalTokens);
+    // // // Write the analysis prompt to a file for debugging
+    // // fs.writeFileSync('src/screenshots/analysisPrompt.txt', analysisPrompt);
+    // console.log(analysisPrompt.length);
+    // console.log(screenshotBuffer.toString("base64").length);
 
     // gemini call
     const response = await model.generateContent({
+      model: 'gemini-2.0-flash',
+      config: llmConfig,
       contents: [
         { role: 'user', parts: [{ text: analysisPrompt }] },
         { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: screenshotBuffer.toString('base64') } }] }
       ]
     });
-    let actionPlan = response.response.text();
+    let actionPlan = response.text || '';
 
     // Clean up the response - extract JSON from the response
     // First attempt to find JSON array in the text
@@ -126,16 +152,19 @@ class Agent {
     }
 
     // Parse and log the action plan
-    let actions: TestAction[];
+    let actions: TestAction[] = [];
     try {
       actions = JSON.parse(actionPlan);
       actions.forEach((action: TestAction, index: number) => {
         console.log(`   ${index + 1}. ${action.action}: ${action.description}`);
+        if (action.selector) {
+          action.selector = getSelectorFromAria(action?.rawSelector?.role, action?.rawSelector?.name);
+        }
       });
     } catch (parseError) {
       console.error('❌ Failed to parse action plan as JSON:', parseError);
       console.log('Raw response:', actionPlan);
-      throw new Error('Failed to parse AI response as JSON');
+      // throw new Error('Failed to parse AI response as JSON');
     }
 
     // Execute each action in the plan SEQUENTIALLY (await each action)
@@ -152,10 +181,12 @@ class Agent {
         const actionType = action.action.replace('browser_', '');
         switch (actionType) {
           case 'click':
-            if (action.selector) await this.page.click(action.selector, { timeout: action.timeout || 5000 });
+            if (action.selector) {
+              await this.page.click(action.selector, { timeout: action.timeout || 5000 });
+            }
             break;
           case 'type':
-            if (action.selector && action.text !== undefined) await this.page.fill(action.selector, action.text);
+            if (action.selector && action.text !== undefined) await this.page.fill(action.selector, action.text, { timeout: action.timeout || 5000 });
             break;
           case 'wait':
           case 'wait_for':
@@ -257,16 +288,57 @@ class Agent {
             beforeText,
             afterText
           );
+          // Use the countTokens API to estimate token usage for the prompt and screenshot
+          // const promptTokenCount = await model.countTokens({
+          //   model: 'gemini-2.0-flash',
+          //   contents: [
+          //     { role: 'user', parts: [{ text: evalPrompt }] },
+          //   ]
+          // });
+          // console.log(`🔢 Estimated tokens for eval prompt:`, promptTokenCount.totalTokens);
+
           const evalResponse = await model.generateContent({
+            model: 'gemini-2.0-flash',
+            config: llmConfig,
             contents: [{ role: 'user', parts: [{ text: evalPrompt }] }]
           });
           let evaluation;
           try {
-            evaluation = evalResponse.response.text();
+            evaluation = evalResponse.text ? JSON.parse(evalResponse.text) : { status: 'unknown', explanation: 'No evaluation provided', issues: [] };
+            
           } catch (e) {
-            evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [] };
+            // Try to extract JSON if wrapped in ```json ... ```
+            const jsonBlockMatch = evalResponse.text?.match(/```json\s*([\s\S]*?)```/);
+            if (jsonBlockMatch && jsonBlockMatch[1]) {
+              try {
+                evaluation = JSON.parse(jsonBlockMatch[1]);
+              } catch {
+                evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalResponse.text] };
+              }
+            } else {
+              evaluation = { status: 'unknown', explanation: 'Could not parse evaluation', issues: [evalResponse.text] };
+            }
+          }          console.log(`🔍 Action evaluation:`, evaluation);
+          
+          // Log the action to the database
+          try {
+            const actionData = {
+              agent: this.personality,
+              changes: [JSON.stringify(action)],
+              issues: [this.page?.url() || ''],
+              status: evaluation?.status || 'unknown',
+              finalVerdict: evaluation?.verdict || 'unknown',
+              finalSummary: evaluation?.explanation || 'No explanation provided',
+              finalIssues: JSON.stringify(evaluation?.issues || []),
+              finalRecommendations: JSON.stringify(evaluation?.recommendations || []),
+              project_id: null // Set this if you have a project ID context
+            };
+            
+            const savedAction = await createAction(actionData);
+            console.log(`💾 Action logged to database with ID: ${savedAction?.id || 'unknown'}`);
+          } catch (dbError) {
+            console.error('Failed to log action to database:', dbError);
           }
-          console.log(`🔍 Action evaluation:`, evaluation);
         })();
       } catch (actionError) {
         console.error(`❌ Action failed: ${action.description}`, actionError);
@@ -304,9 +376,10 @@ class Agent {
         if (!fs.existsSync(destDir)) {
           fs.mkdirSync(destDir, { recursive: true });
         }
-        const destPath = path.join(destDir, `test-video-${Date.now()}.webm`);
-        fs.copyFileSync(videoPath, destPath);
-        console.log(`🎥 Video saved to ${destPath}`);
+        // TODO
+        // const destPath = path.join(destDir, `test-video-${Date.now()}.webm`);
+        // fs.copyFileSync(videoPath, destPath);
+        // console.log(`🎥 Video saved to ${destPath}`);
       }
     }
     // Return actions for session control
