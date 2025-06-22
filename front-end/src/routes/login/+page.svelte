@@ -25,40 +25,35 @@
 />
 
 <div class="min-h-screen z-50 absolute top-0 left-0 w-full">
-  <header class="flex items-center justify-between px-8 py-6 z-50">
-    <div class="flex items-center gap-2">
-      <img
-              alt="Cat Logo"
-              class="w-12 h-auto"
-              src={Logo}
-      />
-      <span class="text-2xl font-bold text-gray-800">Pawditor</span>
-    </div>
-    <nav class="hidden md:flex text-xl items-center gap-16">
-      <a class="text-gray-700 hover:text-gray-900 font-medium transition-colors" href="/">
-        Home
-      </a>
-      <a class="text-gray-700 hover:text-gray-900 font-medium transition-colors" href="/about">
-        About
-      </a>
-      <a class="text-gray-700 hover:text-gray-900 font-medium transition-colors" href="/pricing">
-        Contact
-      </a>
-    </nav>
-    <div class="flex items-center text-xl gap-8">
-      <button class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
-        Log In
-      </button>
-      <button class="border-2 py-2 border-gray-700 text-gray-700 rounded-full px-6">
-        Sign Up
-      </button>
-    </div>
-  </header>
-  {#if loading}
-    <div class="flex justify-center items-center h-[60vh]">
-      <img src={LoadingGif} alt="Loading..." class="w-48 h-48" />
-    </div>
-  {:else}
+    <header class="flex items-center justify-between px-8 py-6 z-50">
+        <div class="flex items-center gap-2">
+            <img
+                    src={Logo}
+                    alt="Cat Logo"
+                    class="w-12 h-auto"
+            />
+            <span class="text-2xl font-bold text-amber-50">Pawditor</span>
+        </div>
+        <nav class="hidden md:flex text-xl items-center gap-16">
+            <a href="/" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
+                Home
+            </a>
+            <a href="/about" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
+                About
+            </a>
+            <a href="/pricing" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
+                Contact
+            </a>
+        </nav>
+        <div class="flex items-center text-xl gap-8">
+            <button class="text-amber-50 over:text-amber-200 font-medium transition-colors">
+                Log In
+            </button>
+            <button class="border-2 py-2 border-amber-50 text-amber-50 over:text-amber-200 rounded-full px-6">
+                Sign Up
+            </button>
+        </div>
+    </header>
     <Card blurBackground={true} class="mx-auto my-12 max-w-md px-6 py-8">
       <div class="text-center mb-8">
         <h1 class="text-3xl font-bold mb-2 text-[#DC5270]">Welcome Back</h1>
@@ -134,7 +129,6 @@
         </div>
       </form>
     </Card>
-  {/if}
 </div>
 
 <!-- Footer -->

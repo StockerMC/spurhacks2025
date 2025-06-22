@@ -65,30 +65,31 @@
         class="top-0 left-0 w-full h-full z-[-1] pointer-events-none opacity-75"/>
 
 <div class="min-h-screen z-50 absolute top-0 left-0 w-full">
-  <header class="flex items-center justify-between px-8 py-6 z-50]">
+  <header class="flex items-center justify-between px-8 py-6 z-50">
     <div class="flex items-center gap-2">
       <img
               src={Logo}
               alt="Cat Logo"
-              class="w-12 h-auto"/>
-      <span class="text-2xl font-bold text-gray-800">Pawditor</span>
+              class="w-12 h-auto"
+      />
+      <span class="text-2xl font-bold text-amber-50">Pawditor</span>
     </div>
     <nav class="hidden md:flex text-xl items-center gap-16">
-      <a href="/" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+      <a href="/" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
         Home
       </a>
-      <a href="/about" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+      <a href="/about" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
         About
       </a>
-      <a href="/pricing" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+      <a href="/pricing" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
         Contact
       </a>
     </nav>
     <div class="flex items-center text-xl gap-8">
-      <a href="/login" class="text-gray-700 hover:text-gray-900 font-medium transition-colors">
+      <a href="/login" class="text-amber-50 hover:text-amber-200 font-medium transition-colors">
         Log In
       </a>
-      <button class="border-2 py-2 border-gray-700 text-gray-700 rounded-full px-6">
+      <button class="border-2 py-2 border-amber-50 text-amber-50 hover:text-amber-200 rounded-full px-6">
         Sign Up
       </button>
     </div>
@@ -97,7 +98,7 @@
     <div class="container mx-auto px-8 py-16">
       <div class="grid lg:grid-cols-2 gap-12 items-center">
         <div class="space-y-6">
-          <h1 class="text-5xl lg:text-6xl font-bold text-gray-800 leading-tight">
+          <h1 class="text-5xl lg:text-6xl font-bold text-zinc-800 leading-tight">
             <span class="text-[#DC5270]">Pounce</span>
             on Bugs Before They
             <span class="text-[#DC5270]">Scratch</span>
@@ -155,7 +156,7 @@
 
   <div class="flex justify-center w-full pt-24">
     <div class="text-center mb-12 max-w-4xl">
-      <h2 class="text-4xl md:text-5xl font-bold text-gray-800 mb-6">
+      <h2 class="text-4xl md:text-5xl font-bold text-zinc-800 mb-6">
         Meet Your <span class="text-[#DC5270]">Virtual</span> Testing Team
       </h2>
       <p class="text-xl text-gray-600">
