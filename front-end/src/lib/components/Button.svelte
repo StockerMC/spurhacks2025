@@ -61,7 +61,7 @@
   </a>
 {:else}
   <button
-          class="{buttonClasses} group"
+          class="{buttonClasses} group hover:cursor-pointer"
           {disabled}
           onclick={onclick}
           {...rest}

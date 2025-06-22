@@ -341,31 +341,6 @@
         <!-- Content Area -->
         <div class="p-6">
             {#if activeSection === 'overview'}
-                <!-- Testing Status Card - Full Width -->
-                <div class="mb-6">
-                    <Card>
-                        <div class="text-center p-4">
-                            {#if !testingStarted}
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4 hover:cursor-pointer">START TESTING</h3>
-                                <p class="text-gray-600 mb-6">Begin automated testing with AI agents</p>
-                                <Button variant="primary" onclick={startTesting}>
-                                    Start Testing
-                                </Button>
-                            {:else}
-                                <h3 class="text-lg font-semibold text-gray-900 mb-2">TESTING IN PROGRESS</h3>
-                                <div class="text-3xl font-bold text-[#6DBDD5] mb-2">{elapsedTime}</div>
-                                <div class="text-sm text-gray-500 mb-4">elapsed</div>
-                                <Button variant="primary" onclick={stopAllTests}>
-                                    Stop Testing
-                                </Button>
-                            {/if}
-                        </div>
-                    </Card>
-                </div>
-
-                <!-- Content Area -->
-        <div class="p-6">
-            {#if activeSection === 'overview'}
                 <Overview
                         {testingStarted}
                         {elapsedTime}
