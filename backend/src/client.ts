@@ -324,13 +324,13 @@ class Agent {
           try {
             const actionData = {
               agent: this.personality,
-              changes: [JSON.stringify(action)],
+              changes: evaluation?.changes || [],
               issues: [this.page?.url() || ''],
               status: evaluation?.status || 'unknown',
               finalVerdict: evaluation?.verdict || 'unknown',
               finalSummary: evaluation?.explanation || 'No explanation provided',
-              finalIssues: JSON.stringify(evaluation?.issues || []),
-              finalRecommendations: JSON.stringify(evaluation?.recommendations || []),
+              finalIssues: evaluation?.issues || [],
+              finalRecommendations: evaluation?.recommendations || [],
               project_id: null // Set this if you have a project ID context
             };
             
