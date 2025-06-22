@@ -2,19 +2,8 @@ import { Elysia } from "elysia";
 import { Agent, llmConfig, model } from "./client";
 import { getSessionEvaluationPrompt, Personality } from "../lib/prompts";
 
-const app = new Elysia()
-  .get("/", () => "Hello Elysia")
-  .post("/test", async ({ body }) => {
-    console.log('Received body:', body);
-    // Parse body as any to avoid TS errors
-    const { url, personality, projectId } = body as any;
-
-    const results: any = {};
-    if (!['hacker', 'boomer', 'geek', 'accessibility cop'].includes(personality)) {
-      return { error: "Invalid personality" };
-    }
-    // for (const personality of personalities) {
-    const agent = new Agent(personality as Personality, projectId);
+async function runAgent(url: string, personality: Personality, projectId: string) {
+    const agent = new Agent(personality, projectId);
     await agent.connect(url);
     let shouldContinue = true;
     let allActions: any[] = [];
@@ -54,26 +43,22 @@ const app = new Elysia()
         { role: 'user', parts: [{ inlineData: { mimeType: 'image/png', data: finalTestHistory.screenshot } }] }
       ]
     });
-    let finalEvaluation = response.text || '';
-    // Try to parse JSON from the finalEvaluation string
-    let parsedEvaluation;
-    try {
-      const match = finalEvaluation.match(/```json\s*([\s\S]*?)\s*```/);
-      if (match) {
-        parsedEvaluation = JSON.parse(match[1]);
-        // upload to database
-        
-        console.log('Parsed Session Evaluation:', parsedEvaluation);
-        return { success: true, actions: allActions, evaluation: parsedEvaluation };
-      } else {
-        console.log('No JSON block found in evaluation.');
-      }
-    } catch (e) {
-      console.log('Failed to parse JSON from evaluation:', e);
-      return { success: false, actions: allActions, evaluation: parsedEvaluation, error: 'Failed to parse evaluation JSON' };
+    let finalEvaluation = response.text;
+    console.log('Session Evaluation:', finalEvaluation);
+    return { success: true, actions: allActions };
+}
+
+const app = new Elysia()
+  .get("/", () => "Hello Elysia")
+  .post("/test", async ({ body: { url, personality, projectId } }: { body: { url: string, personality: string, projectId: string } }) => {
+
+    if (!['hacker', 'boomer', 'geek', 'accessibility cop'].includes(personality)) {
+      return { error: "Invalid personality" };
     }
-    // return { success: true, actions: allActions };
-    // return { url,  };
+
+    await runAgent(url, personality as Personality, projectId);
+    
+    return { success: true, message: "Test started" };
   })
   .listen(8080);
 
