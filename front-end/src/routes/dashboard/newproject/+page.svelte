@@ -407,7 +407,7 @@
                             </div>
                             <div class="flex justify-between mt-8">
                                 <Button variant="outline" onclick={prevStep}>← Back</Button>
-                                <Button variant="primary" onclick={createProject} size="lg">🚀 Launch Testing Project</Button>
+                                <Button variant="primary" onclick={createProject} size="lg">Launch Project</Button>
                             </div>
                         </Card>
                     {/if}
