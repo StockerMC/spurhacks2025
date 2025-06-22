@@ -3,7 +3,8 @@
     import Button from "$lib/components/Button.svelte";
     import { createClient } from "@supabase/supabase-js";
     import { page } from "$app/state";
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
+    import Box2 from "$lib/images/box2.png";
 
     onMount(async () => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -70,6 +71,10 @@
     let selectedAgent = $state(null);
 
 </script>
+
+<!-- svelte-ignore a11y_img_redundant_alt -->
+<img src={Box2} alt="Box Image"
+     class="absolute bottom-12 left-40 h-36 object-cover pointer-events-none"/>
 
 <!-- Testing Status Card - Full Width -->
 <div class="mb-6">
@@ -145,7 +150,8 @@
             $ agentctl inspect {selectedAgent.name}
           </div>
           <div class="text-gray-300 mb-2">
-            Status: <span class="{selectedAgent.status === 'completed' ? 'text-green-400' : selectedAgent.status === 'error' ? 'text-red-400' : 'text-yellow-400'}">{selectedAgent.status}</span>
+            Status: <span
+                  class="{selectedAgent.status === 'completed' ? 'text-green-400' : selectedAgent.status === 'error' ? 'text-red-400' : 'text-yellow-400'}">{selectedAgent.status}</span>
           </div>
           <div class="text-gray-300 mb-2">
             Title: {selectedAgent.title || selectedAgent.action}
@@ -171,7 +177,9 @@
                     class="text-left flex-1 hover:text-yellow-300 transition"
                     onclick={() => { selectedAgent = agent; }}
             >
-              {agentToHumanFriendlyName(agent.name)} <span class="{agent.status === 'completed' ? 'text-green-400' : agent.status === 'error' ? 'text-red-400' : 'text-yellow-400'}">[{agent.status}]</span>
+              {agentToHumanFriendlyName(agent.name)} <span
+                    class="{agent.status === 'completed' ? 'text-green-400' : agent.status === 'error' ? 'text-red-400' : 'text-yellow-400'}">[{agent.status}
+              ]</span>
               <span class="text-gray-500 ml-2">{agent.title || agent.action}</span>
             </button>
           </div>
@@ -188,9 +196,14 @@
 
 <style>
     @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0; }
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0;
+        }
     }
+
     .animate-pulse {
         animation: blink 1s step-end infinite;
     }

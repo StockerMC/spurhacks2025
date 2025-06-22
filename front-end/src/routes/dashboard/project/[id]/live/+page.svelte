@@ -4,6 +4,7 @@
     import { onMount } from "svelte";
     import { page } from "$app/state";
     import { createClient } from "@supabase/supabase-js";
+    import Love from "$lib/images/love.png";
 
     interface Props {
         selectedAgent: any;
@@ -47,6 +48,8 @@
         ];
     };
 </script>
+
+<img src={Love} alt="Love" class="h-16 mx-auto mb-4" />
 
 <Card>
   <div class="flex items-center justify-between mb-6">
