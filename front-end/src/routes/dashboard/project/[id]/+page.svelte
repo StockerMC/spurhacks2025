@@ -7,9 +7,15 @@
     import { goto } from "$app/navigation";
     import { page } from '$app/state';
 
+    // Import section components
+    import Overview from './overview/+page.svelte';
+    import Live from './live/+page.svelte';
+    import Results from './results/+page.svelte';
+    import Summary from './summary/+page.svelte';
+    import PersonaControl from './persona/+page.svelte';
 
-    let projectId = page.params.id;
-    console.log(projectId);
+    let slug = page.params.id;
+    console.log(slug);
 
     let activeSection = $state('overview');
     let sidebarCollapsed = $state(false);
@@ -19,37 +25,11 @@
     let startTime = $state(null);
     let elapsedTime = $state('0m 0s');
 
-
-    // Project data from Supabase
+    // Simplified project data
     let projectData = $state({
-        name: "",
-        status: "",
-        activeAgents: 0,
-        totalTests: 0,
-        issuesFound: 0,
-        uptime: "",
-        estimatedCompletion: ""
-    });
-
-    // Fetch project data from Supabase on mount
-    onMount(async () => {
-        const { data, error } = await supabase
-            .from("projects")
-            .select("*")
-            .eq("id", projectId)
-            .single();
-
-        if (data) {
-            projectData = {
-                name: data?.name,
-                status: data?.status,
-                activeAgents: data?.active_agents ?? 0,
-                totalTests: data?.total_tests ?? 0,
-                issuesFound: data?.issues_found ?? 0,
-                uptime: data?.uptime ?? "",
-                estimatedCompletion: data?.estimated_completion ?? ""
-            };
-        }
+        name: "E-commerce Platform Test",
+        status: "ready",
+        uptime: "0m 0s"
     });
 
     // Agent instances with unique IDs
@@ -74,57 +54,45 @@
         "Accessibility Ana": { count: 0, active: false }
     });
 
-    let criticalIssues = $state([]);
-
-    let feedbackItems = $state([
-        { id: 1, title: "Review login form accessibility", priority: "high", completed: false, assignee: "Dev Team" },
-        { id: 2, title: "Fix mobile responsive issues on checkout", priority: "critical", completed: false, assignee: "Frontend" },
-        { id: 3, title: "Implement better error messages", priority: "medium", completed: true, assignee: "UX Team" },
-        { id: 4, title: "Add loading states for slow connections", priority: "low", completed: false, assignee: "Backend" }
+    // New DB data structure for results
+    let testResults = $state([
+        {
+            id: 1,
+            agent: "The Hacker",
+            page: "/login",
+            verdict: "fail",
+            issues: ["SQL injection vulnerability found", "Weak password validation"],
+            recommendations: ["Implement parameterized queries", "Add stronger password requirements"],
+            summary: "Critical security vulnerabilities detected in login system"
+        },
+        {
+            id: 2,
+            agent: "Mobile Sarah",
+            page: "/checkout",
+            verdict: "partial",
+            issues: ["Button too small on mobile", "Form validation unclear"],
+            recommendations: ["Increase button size for touch targets", "Improve error message clarity"],
+            summary: "Mobile usability issues affecting checkout completion"
+        },
+        {
+            id: 3,
+            agent: "Power User",
+            page: "/dashboard",
+            verdict: "pass",
+            issues: [],
+            recommendations: ["Consider adding keyboard shortcuts", "Add bulk actions"],
+            summary: "Dashboard performs well with minor enhancement opportunities"
+        }
     ]);
 
+    // Updated sidebar items
     const sidebarItems = [
         { id: 'overview', label: 'Project Overview', icon: '📊', badge: null },
-        { id: 'agents', label: 'Agent Intelligence', icon: '🧠', badge: null },
-        { id: 'issues', label: 'Issues + Insights', icon: '🚨', badge: null },
-        { id: 'feedback', label: 'Feedback & Tasks', icon: '💬', badge: feedbackItems.filter(f => !f.completed).length },
-        { id: 'metrics', label: 'Metrics', icon: '📈', badge: null },
-        { id: 'settings', label: 'Persona Control', icon: '🧬', badge: null },
-        { id: 'export', label: 'Export / Controls', icon: '📤', badge: null }
+        { id: 'live', label: 'Live Updates', icon: '🧠', badge: null },
+        { id: 'results', label: 'Results', icon: '🚨', badge: testResults.length },
+        { id: 'summary', label: 'Summary', icon: '📈', badge: null },
+        { id: 'settings', label: 'Persona Control', icon: '🧬', badge: null }
     ];
-
-    const getSeverityColor = (severity: string) => {
-        switch(severity) {
-            case 'critical': return 'bg-purple-100 text-purple-800 border-purple-200';
-            case 'high': return 'bg-red-100 text-red-800 border-red-200';
-            case 'medium': return 'bg-orange-100 text-orange-800 border-orange-200';
-            default: return 'bg-gray-100 text-gray-800 border-gray-200';
-        }
-    };
-
-    const getPriorityColor = (priority: string) => {
-        switch(priority) {
-            case 'critical': return 'bg-purple-100 text-purple-800';
-            case 'high': return 'bg-red-100 text-red-800';
-            case 'medium': return 'bg-orange-100 text-orange-800';
-            case 'low': return 'bg-green-100 text-green-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    };
-
-    const generateDockerLog = (agent) => {
-        return [
-            `[${new Date().toISOString()}] Starting agent container ${agent.id}`,
-            `[${new Date().toISOString()}] Loading persona: ${agent.name}`,
-            `[${new Date().toISOString()}] Connecting to target: https://example.com`,
-            `[${new Date().toISOString()}] Executing: ${agent.action}`,
-            `[${new Date().toISOString()}] Status: ${agent.status}`,
-            `[${new Date().toISOString()}] Memory usage: 45MB`,
-            `[${new Date().toISOString()}] CPU usage: 12%`,
-            `[${new Date().toISOString()}] Network requests: 23`,
-            `[${new Date().toISOString()}] Last heartbeat: ${agent.lastUpdate}`
-        ];
-    };
 
     const updatePersonaCount = (persona: string, change: number) => {
         const newCount = Math.max(0, personaConfig[persona].count + change);
@@ -190,32 +158,6 @@
         res.then(data => {
             projectsList = data.data;
         });
-    });
-
-    // Supabase real-time agentInstances for this project
-    onMount(() => {
-        const channel = supabase.channel('actions-changes')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'actions', filter: `project_id=eq.${projectId}` },
-                (payload) => {
-                    if (payload.eventType === 'INSERT') {
-                        agentInstances = [...agentInstances, payload.new];
-                    } else if (payload.eventType === 'UPDATE') {
-                        agentInstances = agentInstances.map(a => a.id === payload.new.id ? payload.new : a);
-                    } else if (payload.eventType === 'DELETE') {
-                        agentInstances = agentInstances.filter(a => a.id !== payload.old.id);
-                    }
-                }
-            )
-            .subscribe();
-        // Fetch initial agentInstances for this project
-        supabase.from('actions').select('*').eq('project_id', projectId).then(({ data }) => {
-            if (data) agentInstances = data;
-        });
-        return () => {
-            supabase.removeChannel(channel);
-        };
     });
 
     const supabase = createClient(
@@ -343,361 +285,35 @@
 
         <!-- Content Area -->
         <div class="p-6">
-
-            <!-- Project Overview -->
             {#if activeSection === 'overview'}
-                <!-- Testing Status Card - Full Width -->
-                <div class="mb-6">
-                    <Card>
-                        <div class="text-center p-4">
-                            {#if !testingStarted}
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">START TESTING</h3>
-                                <p class="text-gray-600 mb-6">Begin automated testing with AI agents</p>
-                                <Button variant="primary" onclick={startTesting}>
-                                    Start Testing
-                                </Button>
-                            {:else}
-                                <h3 class="text-lg font-semibold text-gray-900 mb-2">TESTING IN PROGRESS</h3>
-                                <div class="text-3xl font-bold text-[#6DBDD5] mb-2">{elapsedTime}</div>
-                                <div class="text-sm text-gray-500 mb-4">elapsed</div>
-                                <Button variant="primary" onclick={stopAllTests}>
-                                    Stop Testing
-                                </Button>
-                            {/if}
-                        </div>
-                    </Card>
-                </div>
-
-                <!-- Critical Issues and Agent Activity - Side by Side -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Critical Issues Card -->
-                    <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Critical Issues</h3>
-                        <div class="space-y-3">
-                            {#if criticalIssues.length === 0}
-                                <p class="text-gray-500 text-center py-4">No critical issues found yet</p>
-                            {:else}
-                                {#each criticalIssues.slice(0, 3) as issue}
-                                    <div class="flex items-start space-x-3 p-3 bg-white/30 rounded-xl border border-white/40">
-                                        <span class="px-2 py-1 rounded-full text-xs font-medium {getSeverityColor(issue.severity)}">
-                                            {issue.severity.toUpperCase()}
-                                        </span>
-                                        <div class="flex-1">
-                                            <p class="text-sm font-medium text-gray-900">{issue.title}</p>
-                                            <p class="text-xs text-gray-600">Found by {issue.agent} on {issue.page}</p>
-                                        </div>
-                                    </div>
-                                {/each}
-                            {/if}
-                        </div>
-                    </Card>
-
-                    <!-- Agent Activity Card -->
-                    <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Agent Activity</h3>
-                        <div class="space-y-3">
-                            {#if testingStarted}
-                                {#each agentInstances.slice(0, 4) as agent}
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                        <div class="flex-1">
-                                            <p class="text-sm font-medium text-gray-900">{agent.name} #{agent.hash}</p>
-                                            <p class="text-xs text-gray-600">{agent.action}</p>
-                                        </div>
-                                        <span class="text-xs text-gray-500">{agent.lastUpdate}</span>
-                                    </div>
-                                {/each}
-                            {:else}
-                                <p class="text-gray-500 text-center py-4">No active agents</p>
-                            {/if}
-                        </div>
-                    </Card>
-                </div>
+                <Overview
+                        {testingStarted}
+                        {elapsedTime}
+                        {testResults}
+                        {agentInstances}
+                        {startTesting}
+                        {stopAllTests}
+                />
+            {:else if activeSection === 'live'}
+                <Live
+                        {agentInstances}
+                        bind:selectedAgent
+                />
+            {:else if activeSection === 'results'}
+                <Results
+                        {testResults}
+                />
+            {:else if activeSection === 'summary'}
+                <Summary
+                        {testResults}
+                />
+            {:else if activeSection === 'settings'}
+                <PersonaControl
+                        {personaConfig}
+                        {updatePersonaCount}
+                        {stopAllTests}
+                />
             {/if}
-
-            <!-- Agent Intelligence Feed -->
-            {#if activeSection === 'agents'}
-                {#if selectedAgent}
-                    <!-- Agent Detail View -->
-                    <Card>
-                        <div class="flex items-center justify-between mb-6">
-                            <div class="flex items-center space-x-3">
-                                <Button variant="outline" size="sm" onclick={() => selectedAgent = null}>← Back</Button>
-                                <h3 class="text-xl font-semibold text-gray-900">Container: {selectedAgent.name} #{selectedAgent.hash}</h3>
-                                <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full border border-green-200">{selectedAgent.status}</span>
-                            </div>
-                            <Button variant="outline" size="sm">Stop Container</Button>
-                        </div>
-
-                        <div class="bg-black text-green-400 p-4 rounded-xl font-mono text-sm overflow-x-auto border border-gray-600">
-                            <div class="mb-2 text-gray-400">Docker Container Logs - {selectedAgent.id}</div>
-                            {#each generateDockerLog(selectedAgent) as log}
-                                <div class="mb-1">{log}</div>
-                            {/each}
-                            <div class="text-yellow-400 animate-pulse">$ Waiting for next command...</div>
-                        </div>
-
-                        <div class="mt-4 grid grid-cols-3 gap-4">
-                            <div class="text-center">
-                                <div class="text-lg font-semibold text-gray-900">45MB</div>
-                                <div class="text-sm text-gray-600">Memory Usage</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-lg font-semibold text-gray-900">12%</div>
-                                <div class="text-sm text-gray-600">CPU Usage</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-lg font-semibold text-gray-900">23</div>
-                                <div class="text-sm text-gray-600">Network Requests</div>
-                            </div>
-                        </div>
-                    </Card>
-                {:else}
-                    <!-- Agent List View -->
-                    <Card>
-                        <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-xl font-semibold text-gray-900">Live Agent Intelligence Feed</h3>
-                            <Button variant="outline" size="sm">Auto-refresh: ON</Button>
-                        </div>
-
-                        <div class="space-y-4">
-                            {#each agentInstances as agent}
-                                <button
-                                        class="w-full border border-white/40 rounded-xl p-4 hover:bg-white/20 transition-all duration-200 text-left backdrop-blur-sm"
-                                        onclick={() => selectedAgent = agent}
-                                >
-                                    <div class="flex items-center justify-between mb-2">
-                                        <div class="flex items-center space-x-3">
-                                            <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                                            <span class="font-semibold text-gray-900">{agent.name} #{agent.hash}</span>
-                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200">{agent.status}</span>
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            <span class="text-sm text-gray-600">{agent.lastUpdate}</span>
-                                            <span class="text-gray-400">→</span>
-                                        </div>
-                                    </div>
-                                    <p class="text-gray-700">{agent.action}</p>
-                                </button>
-                            {/each}
-                        </div>
-                    </Card>
-                {/if}
-            {/if}
-
-            <!-- Issues + Insights -->
-            {#if activeSection === 'issues'}
-                <div class="space-y-6">
-                    <Card>
-                        <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-xl font-semibold text-gray-900">Issues + Insights</h3>
-                            <div class="flex space-x-2">
-                                <Button variant="outline" size="sm">Filter</Button>
-                                <Button variant="outline" size="sm">Export</Button>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            {#if criticalIssues.length === 0}
-                                <div class="text-center py-8">
-                                    <p class="text-gray-500">No issues found yet. Start testing to identify potential problems.</p>
-                                </div>
-                            {:else}
-                                {#each criticalIssues as issue}
-                                    <div class="border border-white/40 rounded-xl p-4 bg-white/10 backdrop-blur-sm">
-                                        <div class="flex items-start justify-between mb-3">
-                                            <div class="flex items-center space-x-3">
-                                                <span class="px-3 py-1 rounded-full text-xs font-medium {getSeverityColor(issue.severity)}">
-                                                    {issue.severity.toUpperCase()}
-                                                </span>
-                                                <h4 class="font-semibold text-gray-900">{issue.title}</h4>
-                                            </div>
-                                            <Button variant="outline" size="sm">Fix</Button>
-                                        </div>
-                                        <div class="text-sm text-gray-600">
-                                            <p>Discovered by <strong>{issue.agent}</strong> on page <code class="bg-white/30 px-2 py-1 rounded border border-white/40">{issue.page}</code></p>
-                                        </div>
-                                    </div>
-                                {/each}
-                            {/if}
-                        </div>
-                    </Card>
-                </div>
-            {/if}
-
-            <!-- Feedback & Tasks -->
-            {#if activeSection === 'feedback'}
-                <Card>
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-xl font-semibold text-gray-900">Feedback & Action Items</h3>
-                        <Button variant="primary" size="sm">+ Add Task</Button>
-                    </div>
-
-                    <div class="space-y-3">
-                        {#each feedbackItems as item}
-                            <div class="flex items-center space-x-4 p-4 border border-white/40 rounded-xl {item.completed ? 'bg-white/10' : 'bg-white/20'} backdrop-blur-sm">
-                                <input
-                                        type="checkbox"
-                                        bind:checked={item.completed}
-                                        class="w-4 h-4 text-[#6DBDD5] rounded focus:ring-[#6DBDD5]"
-                                />
-                                <div class="flex-1">
-                                    <h4 class="font-medium text-gray-900 {item.completed ? 'line-through text-gray-600' : ''}">{item.title}</h4>
-                                    <p class="text-sm text-gray-600">Assigned to: {item.assignee}</p>
-                                </div>
-                                <span class="px-2 py-1 rounded-full text-xs font-medium {getPriorityColor(item.priority)}">
-                                    {item.priority.toUpperCase()}
-                                </span>
-                            </div>
-                        {/each}
-                    </div>
-                </Card>
-            {/if}
-
-            <!-- Metrics -->
-            {#if activeSection === 'metrics'}
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
-                        <div class="space-y-4">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Success Rate</span>
-                                <span class="font-semibold text-green-600">--</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Error Rate</span>
-                                <span class="font-semibold text-red-600">--</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Security Hits</span>
-                                <span class="font-semibold text-orange-600">--</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Avg Response Time</span>
-                                <span class="font-semibold text-[#6DBDD5]">--</span>
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Agent Performance</h3>
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600">The Hacker (0 instances)</span>
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-20 bg-white/30 rounded-full h-2 border border-white/40">
-                                        <div class="bg-gray-300 h-2 rounded-full" style="width: 0%"></div>
-                                    </div>
-                                    <span class="text-xs text-gray-600">--</span>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600">Mobile Sarah (0 instances)</span>
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-20 bg-white/30 rounded-full h-2 border border-white/40">
-                                        <div class="bg-gray-300 h-2 rounded-full" style="width: 0%"></div>
-                                    </div>
-                                    <span class="text-xs text-gray-600">--</span>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600">Power User (0 instances)</span>
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-20 bg-white/30 rounded-full h-2 border border-white/40">
-                                        <div class="bg-gray-300 h-2 rounded-full" style="width: 0%"></div>
-                                    </div>
-                                    <span class="text-xs text-gray-600">--</span>
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-                </div>
-            {/if}
-
-            <!-- Persona Control -->
-            {#if activeSection === 'settings'}
-                <Card>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Persona Control Center</h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {#each Object.entries(personaConfig) as [persona, config]}
-                            <div class="border border-white/40 rounded-xl p-4 bg-white/10 backdrop-blur-sm">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="flex items-center space-x-2">
-                                        <span class="text-2xl">
-                                            {persona === "The Hacker" ? "🔒" :
-                                                persona === "Mobile Sarah" ? "📱" :
-                                                    persona === "Grandpa Joe" ? "👴" :
-                                                        persona === "Power User" ? "⚡" :
-                                                            persona === "Skeptical Sam" ? "🤔" : "♿"}
-                                        </span>
-                                        <h4 class="font-semibold text-gray-900">{persona}</h4>
-                                    </div>
-                                    <span class="px-2 py-1 rounded-full text-xs font-medium border {config.active ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'}">
-                                        {config.active ? 'ACTIVE' : 'INACTIVE'}
-                                    </span>
-                                </div>
-
-                                <div class="flex items-center justify-between mb-4">
-                                    <span class="text-sm text-gray-600">Instances:</span>
-                                    <div class="flex items-center space-x-2">
-                                        <Button variant="outline" size="sm" onclick={() => updatePersonaCount(persona, -1)}>-</Button>
-                                        <span class="w-8 text-center font-semibold">{config.count}</span>
-                                        <Button variant="outline" size="sm" onclick={() => updatePersonaCount(persona, 1)}>+</Button>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-2">
-                                    {#if config.count > 0}
-                                        <Button variant="outline" size="sm" class="w-full">Stop All</Button>
-                                    {:else}
-                                        <Button variant="primary" size="sm" class="w-full" onclick={() => updatePersonaCount(persona, 1)}>Start Testing</Button>
-                                    {/if}
-                                </div>
-                            </div>
-                        {/each}
-                    </div>
-
-                    <div class="mt-8 pt-6 border-t border-white/30">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="font-semibold text-gray-900">Total Active Agents: {Object.values(personaConfig).reduce((sum, config) => sum + config.count, 0)}</h4>
-                                <p class="text-sm text-gray-600">Estimated cost: $0.{(Object.values(personaConfig).reduce((sum, config) => sum + config.count, 0) * 12).toString().padStart(2, '0')}/hour</p>
-                            </div>
-                            <div class="space-x-2">
-                                <Button variant="outline" onclick={stopAllTests}>Stop All Tests</Button>
-                                <Button variant="primary">Save Configuration</Button>
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-            {/if}
-
-            <!-- Export / Controls -->
-            {#if activeSection === 'export'}
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Export Options</h3>
-                        <div class="space-y-3">
-                            <Button variant="outline" class="w-full justify-start">Export Full Report (PDF)</Button>
-                            <Button variant="outline" class="w-full justify-start">Export Issues (CSV)</Button>
-                            <Button variant="outline" class="w-full justify-start">Export Tasks (JSON)</Button>
-                            <Button variant="outline" class="w-full justify-start">Export Metrics (Excel)</Button>
-                        </div>
-                    </Card>
-
-                    <Card>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Test Controls</h3>
-                        <div class="space-y-3">
-                            <Button variant="primary" class="w-full" onclick={() => activeSection = 'settings'}>Configure & Start Tests</Button>
-                            <Button variant="outline" class="w-full">Pause Current Tests</Button>
-                            <Button variant="outline" class="w-full">Restart Failed Tests</Button>
-                            <Button variant="secondary" class="w-full">Clone Test Configuration</Button>
-                        </div>
-                    </Card>
-                </div>
-            {/if}
-
         </div>
     </main>
 </div>
