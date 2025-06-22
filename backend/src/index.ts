@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { Agent, llmConfig, model } from "./client";
 import { getSessionEvaluationPrompt, Personality } from "../lib/prompts";
+import { cors } from '@elysiajs/cors'
 
 async function runAgent(url: string, personality: Personality, projectId: number) {
     const agent = new Agent(personality, projectId);
@@ -49,6 +50,7 @@ async function runAgent(url: string, personality: Personality, projectId: number
 }
 
 const app = new Elysia()
+  .use(cors()).listen(3000)
   .get("/", () => "Hello Elysia")
   .post("/test", async ({ body: { url, personality, projectId } }: { body: { url: string, personality: string, projectId: number } }) => {
     if (!url || !personality || !projectId) {
