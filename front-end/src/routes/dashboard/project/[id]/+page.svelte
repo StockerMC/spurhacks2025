@@ -6,11 +6,19 @@
     import CatBox from "$lib/images/cat_box.png";
     import { createClient } from "@supabase/supabase-js";
     import { goto } from "$app/navigation";
+    import { page } from '$app/state';
+
+
+    let slug = page.params.id;
+    console.log(slug);
+
 
     let activeSection = $state('overview');
     let sidebarCollapsed = $state(false);
     let selectedAgent = $state(null);
     let mounted = $state(false);
+
+
 
     // Mock data for demonstration
     let projectData = $state({

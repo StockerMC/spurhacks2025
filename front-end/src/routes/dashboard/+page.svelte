@@ -146,11 +146,11 @@
             <div class="p-6">
               <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-gray-900">{project.agents.length}</div>
+                  <div class="text-2xl font-bold text-gray-900">3</div>
                   <div class="text-xs text-gray-500">Active Testers</div>
                 </div>
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-gray-900">{project.agents.length}</div>
+                  <div class="text-2xl font-bold text-gray-900">4</div>
                   <div class="text-xs text-gray-500">Total Tests</div>
                 </div>
               </div>
@@ -166,10 +166,10 @@
                   <span class="text-sm font-medium text-gray-900">This Hour</span>
                 </div>
               </div>
-              <div class="flex justify-between space-x-2">
-                <button>
+              <div class="flex items-center justify-between space-x-2">
+                <a class="text-gray-700" href="/dashboard/project/{project.id}">
                   View Details
-                </button>
+                </a>
                 <Button variant="outline" size="sm">
                   <span class="text-lg">⚙️</span>
                 </Button>
