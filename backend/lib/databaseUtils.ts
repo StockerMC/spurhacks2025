@@ -44,9 +44,10 @@ export const createAction = async (action: Action) => {
 export const uploadProjectPhoto = async (
   file: File | Blob | Buffer,
   filename: string,
+  projectId: string,
   personality: string
 ) => {
-  const path = `${SUPABASE_PROJECT_ID}/photos/${filename}`;
+  const path = `${SUPABASE_PROJECT_ID}/${projectId}/${personality}/photos/${filename}`;
   const { data, error } = await supabase.storage
     .from('project-media')
     .upload(path, file, { upsert: true, contentType: 'image/png' });
@@ -54,7 +55,7 @@ export const uploadProjectPhoto = async (
     console.error('Error uploading photo:', error);
     return null;
   }
-  const URL = supabase.storage.from('project-media').getPublicUrl(path).data.publicUrl;
+  return supabase.storage.from('project-media').getPublicUrl(path).data.publicUrl;
 //   const { data: updateData, error: updateError } = await supabase
 //     .from('media')
 
@@ -69,9 +70,11 @@ export const uploadProjectPhoto = async (
  */
 export const uploadProjectVideo = async (
   file: File | Blob | Buffer,
-  filename: string
+  filename: string,
+  projectId: string,
+  personality: string
 ) => {
-  const path = `${SUPABASE_PROJECT_ID}/videos/${filename}`;
+  const path = `${SUPABASE_PROJECT_ID}/${projectId}/${personality}/videos/${filename}`;
   const { data, error } = await supabase.storage
     .from('project-media')
     .upload(path, file, { upsert: true, contentType: 'video/webm' });
