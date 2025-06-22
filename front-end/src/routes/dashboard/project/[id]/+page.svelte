@@ -87,11 +87,11 @@
 
     // Updated sidebar items
     const sidebarItems = [
-        { id: 'overview', label: 'Project Overview', icon: '📊', badge: null },
-        { id: 'live', label: 'Live Updates', icon: '🧠', badge: null },
-        { id: 'results', label: 'Results', icon: '🚨', badge: testResults.length },
-        { id: 'summary', label: 'Summary', icon: '📈', badge: null },
-        { id: 'settings', label: 'Persona Control', icon: '🧬', badge: null }
+        { id: 'overview', label: 'Project Overview', icon: '', badge: null },
+        { id: 'live', label: 'Live Updates', icon: '', badge: null },
+        { id: 'results', label: 'Results', icon: '', badge: testResults.length },
+        { id: 'summary', label: 'Summary', icon: '', badge: null },
+        { id: 'settings', label: 'Persona Control', icon: '', badge: null }
     ];
 
     const updatePersonaCount = (persona: string, change: number) => {
