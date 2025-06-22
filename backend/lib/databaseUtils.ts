@@ -44,7 +44,7 @@ export const createAction = async (action: Action) => {
 export const uploadProjectPhoto = async (
   file: File | Blob | Buffer,
   filename: string,
-  projectId: string,
+  projectId: number,
   personality: string
 ) => {
   const path = `${SUPABASE_PROJECT_ID}/${projectId}/${personality}/photos/${filename}`;
@@ -71,7 +71,7 @@ export const uploadProjectPhoto = async (
 export const uploadProjectVideo = async (
   file: File | Blob | Buffer,
   filename: string,
-  projectId: string,
+  projectId: number,
   personality: string
 ) => {
   const path = `${SUPABASE_PROJECT_ID}/${projectId}/${personality}/videos/${filename}`;
