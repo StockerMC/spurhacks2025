@@ -19,6 +19,7 @@
             .select("*");
         res.then(data => {
             projectsList = data.data.reverse();
+            projectsListRaw = projectsList.slice();
         });
     });
 
@@ -28,10 +29,25 @@
     );
 
     let projectsList: any = $state([]);
+    let projectsListRaw = $state([]);
 
     const createNewProject = () => {
         goto("/dashboard/newproject");
     };
+
+    let searchQuery = $state('');
+    function searchProjects() {
+      if (!searchQuery.trim()) {
+        // If empty, show all
+        projectsList = projectsListRaw.slice();
+        return;
+      }
+      const q = searchQuery.trim().toLowerCase();
+      projectsList = projectsListRaw.filter(p =>
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.description && p.description.toLowerCase().includes(q))
+      );
+    }
 </script>
 
 <svelte:head>
@@ -65,20 +81,7 @@
           </div>
         </div>
 
-        <div class="flex items-center space-x-4">
-          <div class="flex items-center space-x-3">
-            <button class="bg-[#6DBDD5] text-gray-50 rounded-full px-4 py-2">
-              Analytics
-            </button>
-            <button class="bg-[#6DBDD5] text-gray-50 rounded-full px-4 py-2">
-              Settings
-            </button>
-            <div class="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
-              <!-- svelte-ignore a11y_img_redundant_alt -->
-              <img src={Pfp} alt="Profile Picture" class="w-10 h-10 rounded-full"/>
-            </div>
-          </div>
-        </div>
+        
       </div>
     </div>
   </header>
@@ -93,14 +96,23 @@
             <h2 class="text-3xl font-bold text-gray-900 mb-2">Your Projects</h2>
             <p class="text-gray-600">Monitor and manage your pawditor projects</p>
           </div>
+          <div class="flex items-center space-x-4">
           <div class="flex items-center space-x-3">
-            <button class="bg-[#6DBDD5] text-gray-50 rounded-full px-4 py-2">
-              Search
-            </button>
-            <button class="bg-[#6DBDD5] text-gray-50 rounded-full px-4 py-2">
-              Filter
-            </button>
+            <input
+              type="text"
+              placeholder="Search projects..."
+              class="rounded-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#6DBDD5] text-gray-900 bg-white"
+              bind:value={searchQuery}
+              onchange={searchProjects}
+              style="min-width: 180px;"
+            />
+            
+            <div class="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
+              <!-- svelte-ignore a11y_img_redundant_alt -->
+              <img src={Pfp} alt="Profile Picture" class="w-10 h-10 rounded-full"/>
+            </div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -146,11 +158,11 @@
             <div class="p-6">
               <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-gray-900">3</div>
+                    <div class="text-2xl font-bold text-gray-900">{Math.floor(Math.random() * 4) + 0}</div>
                   <div class="text-xs text-gray-500">Active Testers</div>
                 </div>
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-gray-900">4</div>
+                    <div class="text-2xl font-bold text-gray-900">{Math.floor(Math.random() * (46 - 15 + 1)) + 15}</div>
                   <div class="text-xs text-gray-500">Total Tests</div>
                 </div>
               </div>
@@ -167,9 +179,11 @@
                 </div>
               </div>
               <div class="flex items-center justify-between space-x-2">
-                <a class="text-gray-700" href="/dashboard/project/{project.id}">
-                  View Details
-                </a>
+                <button class="rounded-full border-2 border-[#6DBDD5] text-[#6DBDD5] hover:bg-[#6DBDD5]/10 transition">
+                  <a href={`/dashboard/project/${project.id}`} class="px-4 py-1 block">
+                    View Details
+                  </a>
+                </button>
                 <Button variant="outline" size="sm">
                   <span class="text-lg">⚙️</span>
                 </Button>

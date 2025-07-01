@@ -64,10 +64,10 @@
             class="text-white rounded-full px-10 py-4 text-xl font-semibold transition-all duration-200"
             style="background-color: #DC5270;"
             href="/login"
-            onmouseover={(event) => ((event.currentTarget as HTMLElement).style.backgroundColor = '#b13a56')}
-            onfocus={(event) => ((event.currentTarget as HTMLElement).style.backgroundColor = '#b13a56')}
-            onmouseout={(event) => ((event.currentTarget as HTMLElement).style.backgroundColor = '#DC5270')}
-            onblur={(event) => ((event.currentTarget as HTMLElement).style.backgroundColor = '#DC5270')}
+            onmouseover={(event) => ((event.currentTarget).style.backgroundColor = '#b13a56')}
+            onfocus={(event) => ((event.currentTarget).style.backgroundColor = '#b13a56')}
+            onmouseout={(event) => ((event.currentTarget).style.backgroundColor = '#DC5270')}
+            onblur={(event) => ((event.currentTarget).style.backgroundColor = '#DC5270')}
           >
             GET STARTED
           </a>

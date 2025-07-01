@@ -66,7 +66,8 @@
         if (agent === "geek") return "Power User";
         else if (agent === "boomer") return "Grandpa Joe";
         else if (agent === "accessibility cop") return "Accessibility Officer";
-        else return "The Hacker";
+        else if (agent === 'hacker') return "The Hacker";
+        else return 'Mr. Meow'
     };
     let selectedAgent = $state(null);
 
@@ -112,7 +113,7 @@
   <Card>
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Latest Results</h3>
     <div class="space-y-3">
-      {#if testResults.length === 0}
+      {#if actions.length === 0}
         <p class="text-gray-500 text-center py-4">No results yet</p>
       {:else}
         {#each actions.slice(0, 3) as action}
@@ -174,10 +175,10 @@
           <div class="flex items-center mb-1">
             <span class="text-blue-400 mr-2">$</span>
             <button
-                    class="text-left flex-1 hover:text-yellow-300 transition"
+                    class="text-left flex-1 hover:text-yellow-300 cursor-pointer transition"
                     onclick={() => { selectedAgent = agent; }}
             >
-              {agentToHumanFriendlyName(agent.name)} <span
+              {agentToHumanFriendlyName(agent.agent)} <span
                     class="{agent.status === 'completed' ? 'text-green-400' : agent.status === 'error' ? 'text-red-400' : 'text-yellow-400'}">[{agent.status}
               ]</span>
               <span class="text-gray-500 ml-2">{agent.title || agent.action}</span>

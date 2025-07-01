@@ -340,7 +340,7 @@ ${finalSnapshot.replace(' +', ' ')}
 4. What are your top recommendations for improvement?
 5. Give a summary verdict (pass/fail/partial) and a short explanation.
 
-Return your evaluation as JSON:
+Return your evaluation as JSON with all these keys:
 {
   "verdict": "pass|partial|fail",
   "issues": ["list of key issues"],

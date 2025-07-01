@@ -56,7 +56,8 @@ async function runAgent(browser: ChromiumBrowser, url: string, personality: Pers
     });
     // parse the response as json and also handle if it happens to wrapped by ```json..```
     let finalObject = JSON.parse((response.text || '{}').replace(/```json\s*|\s*```/g, '').trim());
-    
+    console.log(finalObject)
+
     // make another row 
     await supabase
       .from('actions')
@@ -67,10 +68,10 @@ async function runAgent(browser: ChromiumBrowser, url: string, personality: Pers
         description: finalTestHistory.textContent,
         screenshot: finalTestHistory.screenshot,
         created_at: new Date().toISOString(),
-        finalVerdict: finalObject.verdict || 'No verdict provided',
-        finalIssues: finalObject.issues || [],
-        finalRecommendations: finalObject.recommendations || [],
-        finalSummary: finalObject.summary || '',
+        finalVerdict: finalObject.verdict,
+        finalIssues: JSON.stringify(finalObject.issues),
+        finalRecommendations: JSON.stringify(finalObject.recommendations),
+        finalSummary: JSON.stringify(finalObject.summary),
       });
     let finalEvaluation = response.text;
     console.log('Session Evaluation:', finalEvaluation);

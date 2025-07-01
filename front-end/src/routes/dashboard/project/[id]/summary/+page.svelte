@@ -78,25 +78,6 @@
         }
     };
 
-    // Generate overall summary and score
-    const generateOverallSummary = () => {
-        const totalTests = testResults.length;
-        const passCount = testResults.filter(r => r.verdict === "pass").length;
-        const partialCount = testResults.filter(r => r.verdict === "partial").length;
-        const failCount = testResults.filter(r => r.verdict === "fail").length;
-
-        const score = Math.round(((passCount * 100) + (partialCount * 50)) / totalTests);
-
-        return {
-            score,
-            totalTests,
-            passCount,
-            partialCount,
-            failCount,
-            summary: `Testing completed with ${score}% overall score. ${failCount} critical issues found requiring immediate attention, ${partialCount} areas need improvement, and ${passCount} components passed all tests.`
-        };
-    };
-
     // Helper: map agent name to human-friendly name
     const agentToHumanFriendlyName = (agent) => {
         if (agent === "geek") return "Power User";
@@ -124,54 +105,69 @@
 <div class="space-y-6">
   <Card>
     <h3 class="text-xl font-semibold text-gray-900 mb-6">Overall Summary</h3>
-
-    {#if testResults.length === 0}
-      <div class="text-center py-8">
-        <p class="text-gray-500">No data available. Complete some tests to see the summary.</p>
-      </div>
-    {:else}
-      {@const summary = generateOverallSummary()}
-
-      <!-- Score Overview -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="text-center p-4 bg-white/20 rounded-xl border border-white/40">
-          <div class="text-3xl font-bold text-[#6DBDD5] mb-2">{summary.score}%</div>
-          <div class="text-sm text-gray-600">Overall Score</div>
-        </div>
-        <div class="text-center p-4 bg-white/20 rounded-xl border border-white/40">
-          <div class="text-3xl font-bold text-green-600 mb-2">{summary.passCount}</div>
-          <div class="text-sm text-gray-600">Passed</div>
-        </div>
-        <div class="text-center p-4 bg-white/20 rounded-xl border border-white/40">
-          <div class="text-3xl font-bold text-orange-600 mb-2">{summary.partialCount}</div>
-          <div class="text-sm text-gray-600">Partial</div>
-        </div>
-        <div class="text-center p-4 bg-white/20 rounded-xl border border-white/40">
-          <div class="text-3xl font-bold text-red-600 mb-2">{summary.failCount}</div>
-          <div class="text-sm text-gray-600">Failed</div>
-        </div>
-      </div>
-
-      <!-- Summary Text -->
-      <div class="bg-white/20 rounded-xl p-6 border border-white/40">
-        <h4 class="font-semibold text-gray-900 mb-3">Executive Summary</h4>
-        <p class="text-gray-700 leading-relaxed">{summary.summary}</p>
-      </div>
-
       <!-- Individual Summaries -->
       <div class="mt-6">
         <h4 class="font-semibold text-gray-900 mb-4">Final Persona Results</h4>
         <!--                Show each summary for each persona-->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {#each [hackerSummary, boomerSummary, accessibilityCopSummary, powerUserSummary] as agentSummary}
+            {#each [hackerSummary, boomerSummary, accessibilityCopSummary, powerUserSummary] as agentSummary}
             <div class="bg-white/20 rounded-xl p-4 border border-white/40">
-              <h5 class="font-semibold text-gray-900 mb-2">{agentToHumanFriendlyName(agentSummary.agent)}</h5>
-              <p class="text-gray-700 mb-2">{agentSummary.finalSummary || "No summary available."}</p>
-              <p class="text-sm text-gray-500">Last updated: {new Date(agentSummary.created_at).toLocaleString()}</p>
+                <h5 class="font-semibold text-gray-900 mb-2">{agentToHumanFriendlyName(agentSummary.agent)}</h5>
+                <p class="text-gray-700 mb-2">{agentSummary.finalSummary || "No summary available."}</p>
+                {#if agentSummary.finalIssues && (Array.isArray(agentSummary.finalIssues) ? agentSummary.finalIssues.length > 0 : (typeof agentSummary.finalIssues === 'string' && agentSummary.finalIssues.length > 2))}
+                <div class="mb-2">
+                    <div class="font-semibold text-[#d83458] mb-1">Final Issues</div>
+                    <ul class="list-disc list-inside text-[#DC5270] text-sm">
+                    {#each (
+                        (() => {
+                            let issues = agentSummary.finalIssues;
+                            if (typeof issues === 'string') {
+                                try {
+                                    const parsed = JSON.parse(issues);
+                                    if (Array.isArray(parsed)) return parsed.flatMap(i => typeof i === 'string' ? i.split('\n') : [i]).filter(Boolean);
+                                } catch { /* not JSON */ }
+                                return issues.split('\n').filter(Boolean);
+                            } else if (Array.isArray(issues)) {
+                                return issues.flatMap(i => typeof i === 'string' ? i.split('\n') : [i]).filter(Boolean);
+                            } else {
+                                return [issues];
+                            }
+                        })()
+                    ) as issue}
+                        <li>{issue}</li>
+                    {/each}
+                    </ul>
+                </div>
+                {/if}
+                {#if agentSummary.finalRecommendations && (Array.isArray(agentSummary.finalRecommendations) ? agentSummary.finalRecommendations.length > 0 : (typeof agentSummary.finalRecommendations === 'string' && agentSummary.finalRecommendations.length > 2))}
+                <div class="mb-2">
+                    <div class="font-semibold text-[#34a0c1] mb-1">Recommendations</div>
+                    <ul class="list-disc list-inside text-[#6DBDD5] text-sm">
+                    {#each (
+                        (() => {
+                            let recs = agentSummary.finalRecommendations;
+                            if (typeof recs === 'string') {
+                                try {
+                                    const parsed = JSON.parse(recs);
+                                    if (Array.isArray(parsed)) return parsed.flatMap(i => typeof i === 'string' ? i.split('\n') : [i]).filter(Boolean);
+                                } catch { /* not JSON */ }
+                                return recs.split('\n').filter(Boolean);
+                            } else if (Array.isArray(recs)) {
+                                return recs.flatMap(i => typeof i === 'string' ? i.split('\n') : [i]).filter(Boolean);
+                            } else {
+                                return [recs];
+                            }
+                        })()
+                    ) as rec}
+                        <li>{rec}</li>
+                    {/each}
+                    </ul>
+                </div>
+                {/if}
+                <p class="text-sm text-gray-500 mt-1">Last updated: {agentSummary.created_at ? new Date(agentSummary.created_at).toLocaleString() : 'N/A'}</p>
             </div>
-          {/each}
+            {/each}
         </div>
       </div>
-    {/if}
   </Card>
 </div>

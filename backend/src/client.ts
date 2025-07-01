@@ -188,7 +188,8 @@ class Agent {
         switch (actionType) {
           case 'click':
             if (action.selector) {
-              await this.page.click(action.selector, { timeout: action.timeout || 5000 , force: true });
+              // await this.page.waitForSelector(action.selector, { timeout: action.timeout || 5000 });
+              await this.page.locator(action.selector).click({ timeout: action.timeout || 5000, force: true });
             }
             break;
           case 'type':
@@ -352,7 +353,9 @@ class Agent {
               finalSummary: evaluation?.explanation || 'No explanation provided',
               finalIssues: evaluation?.issues || [],
               finalRecommendations: evaluation?.recommendations || [],
-              project_id: this.projectId // Set this if you have a project ID context
+              project_id: this.projectId,
+              title: evaluation?.title || action.description,
+              explanation: evaluation?.explanation || '',
             };
 
             const savedAction = await createAction(actionData);

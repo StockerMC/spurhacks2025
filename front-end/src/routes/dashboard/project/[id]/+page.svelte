@@ -49,13 +49,18 @@
             // console.log(`${personality} test started.`);
             try {
                 const response = await fetch(`https://spurhacks2025-430215758629.us-central1.run.app/test`, {
-                // const response = await fetch('http://localhost:8080/test', {
                     method: 'POST',
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ projectId, url: projectData.url, notes: projectData.notes })
+                    body: JSON.stringify({ projectId, url: projectData.url, notes: projectData.notes, personality })
                 });
+                //     method: 'POST',
+                //     headers: {
+                //         "Content-Type": "application/json"
+                //     },
+                //     body: JSON.stringify({ projectId, url: projectData.url, notes: projectData.notes })
+                // });
                 console.log(`Response from test start: ${await response.text()}`);
                 clearInterval(timeInterval);
             } catch (error) {

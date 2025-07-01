@@ -83,13 +83,13 @@
       {#if media.length === 0}
         <p class="text-gray-500">No screenshots available.</p>
       {/if}
-      {#each media as item}
+      {#each media.toReversed() as item}
         <img src={item.url} alt={item.name} class="w-full h-auto rounded-lg shadow-md"/>
       {/each}
     </div>
   </Card>
 
-  <!-- Final Results for Each Persona -->
+  <!-- Final Results for Each Persona
   <Card>
     <h3 class="text-xl font-semibold text-gray-900 mb-6">Final Results by Persona</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -135,5 +135,5 @@
         {/each}
       {/if}
     </div>
-  </Card>
+  </Card> -->
 </div>
